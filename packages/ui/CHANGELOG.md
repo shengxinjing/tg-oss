@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.24 (2026-05-22)
+
+- feat: DataTable copy now also writes `text/html` to the clipboard, so pasting into rich-text editors (ELN, Google Docs, Notion) keeps the table structure
+
 ## 0.10.23 (2026-05-05)
 
 - fix: add data-test-value to select to help w testing
