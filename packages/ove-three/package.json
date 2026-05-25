@@ -1,0 +1,27 @@
+{
+  "name": "@teselagen/ove-three",
+  "version": "0.0.1",
+  "main": "./src/index.js",
+  "type": "module",
+  "repository": "https://github.com/TeselaGen/tg-oss",
+  "exports": {
+    ".": {
+      "import": "./index.es.js",
+      "require": "./index.cjs.js"
+    },
+    "./style.css": "./style.css"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.108.0",
+    "@react-three/fiber": "^8.16.0",
+    "@teselagen/range-utils": "file:../range-utils",
+    "@teselagen/sequence-utils": "file:../sequence-utils",
+    "stats-gl": "^2.2.8",
+    "three": "^0.165.0",
+    "zustand": "^4.5.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

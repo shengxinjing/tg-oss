@@ -1,0 +1,39 @@
+{
+  "name": "ove-three",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/ove-three/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": [],
+      "outputs": ["{workspaceRoot}/dist/ove-three"],
+      "options": {
+        "command": "cd packages/ove-three && yarn vite build --emptyOutDir"
+      },
+      "configurations": {
+        "demo": {
+          "command": "cd packages/ove-three && yarn vite build --mode demo --emptyOutDir"
+        },
+        "production": {
+          "command": "cd packages/ove-three && yarn vite build --emptyOutDir"
+        }
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["cd packages/ove-three && yarn vite"]
+      },
+      "configurations": {
+        "ci": {
+          "readyWhen": "ready in"
+        }
+      }
+    },
+    "lint": {},
+    "test": {},
+    "version": {}
+  }
+}

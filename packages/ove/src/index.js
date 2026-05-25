@@ -15,6 +15,8 @@ export {
   default as CircularView,
   CircularView as CircularViewUnconnected
 } from "./CircularView";
+export { default as ThreeCircularViewAdapter } from "./ThreeViewAdapters/ThreeCircularViewAdapter";
+export { default as mapOvePropsToThreeCircularProps } from "./ThreeViewAdapters/mapOvePropsToThreeCircularProps";
 export { default as SimpleCircularOrLinearView } from "./SimpleCircularOrLinearView";
 export { default as RowView, RowView as RowViewUnconnected } from "./RowView";
 export { default as RowItem } from "./RowItem";

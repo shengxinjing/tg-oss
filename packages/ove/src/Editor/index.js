@@ -38,6 +38,7 @@ import { ToolBar } from "../ToolBar";
 import CircularView from "../CircularView";
 import LinearView from "../LinearView";
 import RowView from "../RowView";
+import ThreeCircularViewAdapter from "../ThreeViewAdapters/ThreeCircularViewAdapter";
 import StatusBar from "../StatusBar";
 import DropHandler from "./DropHandler";
 import PropertiesDialog from "../helperComponents/PropertiesDialog";
@@ -554,6 +555,12 @@ export class Editor extends React.Component {
       }
       const panelMap = {
         ..._panelMap,
+        ...(this.props.useThreeCircularView && {
+          circular: {
+            ..._panelMap.circular,
+            comp: ThreeCircularViewAdapter
+          }
+        }),
         ...this.props.panelMap
       };
 

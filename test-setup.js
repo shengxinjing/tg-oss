@@ -2,8 +2,12 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 // test-setup.js
 import { JSDOM } from "jsdom";
-import { beforeEach, afterEach } from "bun:test";
-import "@testing-library/jest-dom"; // Import for custom matchers
+import { beforeEach, afterEach, expect } from "bun:test";
+
+global.expect = expect;
+if (typeof expect.extend === "function") {
+  await import("@testing-library/jest-dom");
+}
 
 // Declare jsdom and related globals at a higher scope
 // so they can be reassigned in beforeEach and cleaned in afterEach
@@ -23,7 +27,6 @@ beforeEach(() => {
 
   global.window = window;
   global.document = document;
-  global.navigator = jsdomInstance.window.navigator;
   global.HTMLElement = jsdomInstance.window.HTMLElement;
   global.customElements = jsdomInstance.window.customElements;
   global.DocumentFragment = jsdomInstance.window.DocumentFragment;

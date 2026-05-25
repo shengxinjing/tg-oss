@@ -17,6 +17,7 @@
     "@risingstack/react-easy-state": "^6.3.0",
     "@teselagen/bio-parsers": "file:../bio-parsers",
     "@teselagen/file-utils": "file:../file-utils",
+    "@teselagen/ove-three": "file:../ove-three",
     "@teselagen/range-utils": "file:../range-utils",
     "@teselagen/react-list": "0.8.18",
     "@teselagen/sequence-utils": "file:../sequence-utils",

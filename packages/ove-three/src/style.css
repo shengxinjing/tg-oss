@@ -1,0 +1,161 @@
+.ove-three-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  overflow: hidden;
+  background: #07111f;
+}
+
+.ove-three-stats-gl {
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 5 !important;
+}
+
+.ove-three-scene-stats {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 210px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 6px;
+  background: rgba(7, 17, 31, 0.78);
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.35;
+  backdrop-filter: blur(10px);
+}
+
+.ove-three-scene-stats__fixture {
+  margin-bottom: 8px;
+  overflow: hidden;
+  color: #f8fafc;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ove-three-scene-stats dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.ove-three-scene-stats dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ove-three-scene-stats dt {
+  color: #93a4ba;
+}
+
+.ove-three-scene-stats dd {
+  margin: 0;
+  color: #e5eefb;
+  font-variant-numeric: tabular-nums;
+}
+
+.ove-three-picking-debug {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 5;
+  width: 210px;
+  padding: 10px 12px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 6px;
+  background: rgba(7, 17, 31, 0.78);
+  color: #fef3c7;
+  font-size: 12px;
+  line-height: 1.5;
+  backdrop-filter: blur(10px);
+}
+
+.ove-three-pointer-debug {
+  position: absolute;
+  bottom: 96px;
+  left: 12px;
+  z-index: 5;
+  width: 210px;
+  padding: 10px 12px;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 6px;
+  background: rgba(7, 17, 31, 0.78);
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.5;
+  backdrop-filter: blur(10px);
+}
+
+.ove-three-demo {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  background: #07111f;
+  color: #e5eefb;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.ove-three-demo__viewer {
+  min-height: 100vh;
+}
+
+.ove-three-demo__panel {
+  padding: 20px;
+  background: rgba(7, 17, 31, 0.88);
+  border-left: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.ove-three-demo__panel h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.ove-three-demo__panel p {
+  margin: 0 0 18px;
+  color: #9fb0c7;
+}
+
+.ove-three-demo__features {
+  display: grid;
+  gap: 8px;
+}
+
+.ove-three-demo__toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.ove-three-demo__feature {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  font-size: 13px;
+}
+
+.ove-three-demo__swatch {
+  width: 10px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.ove-three-demo__range {
+  color: #9fb0c7;
+}

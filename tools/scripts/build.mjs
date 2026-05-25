@@ -1,12 +1,11 @@
-import { $, argv } from "bun";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 
-// 1. Bun-native path helpers
 const workspaceRoot = path.resolve(import.meta.dir, "../../");
 
-// 2. Bun.argv is the canonical way to access arguments
-const projectRoot = argv[2];
-const args = argv.slice(3).filter(arg => arg !== "{args}");
+const projectRoot = process.argv[2];
+const args = process.argv.slice(3).filter(arg => arg !== "{args}");
 
 if (!projectRoot) {
   console.error("Project root is required");
@@ -18,21 +17,23 @@ const distDir = path.resolve(workspaceRoot, "dist", projectRoot);
 
 console.info(`Building ${projectRoot}...`);
 
-/**
- * 3. Canonical Cleanup
- * Bun's Shell ($) is faster and handles errors via promises.
- */
-await $`rm -rf ${distDir}`;
+function run(command, commandArgs, cwd) {
+  const result = spawnSync(command, commandArgs, {
+    cwd,
+    stdio: "inherit"
+  });
+  if (result.status !== 0) process.exit(result.status || 1);
+}
 
-/**
- * 4. Run Vite Build
- * Using Bun Shell's .cwd() to handle execution context.
- * It inherits stdio (inherit) by default.
- */
+fs.rmSync(distDir, { recursive: true, force: true });
+
 try {
   console.info(`Running build for ${projectRoot}...`);
-  // Use ${args} directly; Bun Shell handles array interpolation safely
-  await $`bun vite build --config vite.config.ts ${args}`.cwd(fullProjectRoot);
+  run(
+    "bun",
+    ["vite", "build", "--config", "vite.config.ts", ...args],
+    fullProjectRoot
+  );
 } catch (error) {
   console.error("Build failed");
   process.exit(1);
@@ -53,7 +54,7 @@ try {
     "tools/scripts/updatePkgDeps.mjs"
   );
   console.info(`Updating dependencies...`);
-  await $`bun ${updateDepsScript} ${projectRoot}`.cwd(workspaceRoot);
+  run("bun", [updateDepsScript, projectRoot], workspaceRoot);
 } catch (error) {
   console.error("Dependency update failed");
   process.exit(1);
