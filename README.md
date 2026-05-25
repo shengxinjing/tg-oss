@@ -1,6 +1,6 @@
 # Teselagen's Open Source Mono Repo
 
-** ove-threee** : `yarn nx run ove-three:start`
+**ove-three** : `yarn nx run ove-three:start`
 
 # Packages
 
