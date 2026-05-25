@@ -1,5 +1,7 @@
 # Teselagen's Open Source Mono Repo
 
+** ove-threee** : `yarn nx run ove-three:start`
+
 # Packages
 
 **@teselagen/ove** (open-source vector editor - a tool for viewing and manipulating DNA/AA sequences)
