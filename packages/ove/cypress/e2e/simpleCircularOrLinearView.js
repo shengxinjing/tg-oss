@@ -1,3 +1,53 @@
+function getThreeCanvasContentBox(canvas) {
+  const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+  const width = gl.drawingBufferWidth;
+  const height = gl.drawingBufferHeight;
+  const pixels = new Uint8Array(width * height * 4);
+  let nonBackgroundPixels = 0;
+  let minX = width;
+  let maxX = -1;
+
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  for (let index = 0; index < pixels.length; index += 4) {
+    const r = pixels[index];
+    const g = pixels[index + 1];
+    const b = pixels[index + 2];
+    if (Math.abs(r - 7) + Math.abs(g - 17) + Math.abs(b - 31) > 32) {
+      const pixelIndex = index / 4;
+      const x = pixelIndex % width;
+      nonBackgroundPixels += 1;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+    }
+  }
+
+  return {
+    width,
+    nonBackgroundPixels,
+    contentWidth: maxX >= minX ? maxX - minX + 1 : 0
+  };
+}
+
+function assertThreeCanvasHasContent() {
+  cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should(
+    $canvas => {
+      const box = getThreeCanvasContentBox($canvas[0]);
+
+      expect(box.nonBackgroundPixels).to.be.greaterThan(200);
+    }
+  );
+}
+
+function assertThreeCanvasContentWidthRatio(minRatio) {
+  cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should(
+    $canvas => {
+      const box = getThreeCanvasContentBox($canvas[0]);
+
+      expect(box.contentWidth / box.width).to.be.greaterThan(minRatio);
+    }
+  );
+}
+
 describe("simpleCircularOrLinearView", function () {
   // beforeEach(() => {
   //   cy.visit("/#/SimpleCircularOrLinearView");
@@ -101,6 +151,24 @@ describe("simpleCircularOrLinearView", function () {
     //this just tests that this toggle doesn't throw an error
     cy.tgToggle("circular");
     cy.get(`.veCircularView`);
+  });
+  it("can mount the Three.js linear adapter", function () {
+    cy.visit("/#/SimpleCircularOrLinearView?useThreeLinearView=true");
+    cy.get(`[data-testid="ove-three-linear-view-adapter"]`).should("exist");
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should("exist");
+    assertThreeCanvasHasContent();
+    assertThreeCanvasContentWidthRatio(0.62);
+  });
+  it("can mount the Three.js row adapter", function () {
+    cy.visit(
+      "/#/SimpleCircularOrLinearView?withChoosePreviewType=true&useThreeRowView=true"
+    );
+    cy.get(".tgPreviewTypeRow").click();
+    cy.get(`[data-testid="ove-three-row-view-adapter"]`).should("exist");
+    cy.get(`[data-testid="ove-three-row-view"]`).should("exist");
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should("exist");
+    assertThreeCanvasHasContent();
+    assertThreeCanvasContentWidthRatio(0.55);
   });
   it(`can toggle part colors`, function () {
     cy.visit("/#/SimpleCircularOrLinearView");

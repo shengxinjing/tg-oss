@@ -1,6 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import ThreeCircularCanvas from "./renderers/ThreeCircularCanvas";
+import ThreeLinearCanvas from "./renderers/ThreeLinearCanvas";
+import ThreeRowCanvas from "./renderers/ThreeRowCanvas";
 import buildCircularSceneModel from "./model/buildCircularSceneModel";
+import buildLinearSceneModel from "./model/buildLinearSceneModel";
 import PickingDebugOverlay from "./debug/PickingDebugOverlay";
 import PointerPositionDebugOverlay from "./debug/PointerPositionDebugOverlay";
 import useRaycastPicking from "./interaction/useRaycastPicking";
@@ -41,8 +44,19 @@ function SceneStatsReadout({ stats }) {
   );
 }
 
+function getSequenceLength(sequenceData = {}) {
+  const rawLength = sequenceData.noSequence
+    ? sequenceData.size
+    : sequenceData.sequence?.length || sequenceData.size;
+  const sequenceLength = Math.floor(Number(rawLength));
+  return Number.isFinite(sequenceLength) && sequenceLength > 0
+    ? sequenceLength
+    : 0;
+}
+
 export default function ThreeDGeneViewer({
   sequenceData,
+  viewType = "circular",
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
@@ -57,14 +71,37 @@ export default function ThreeDGeneViewer({
   showLabelBoxes = false,
   showPickRay = false,
   showPointerPosition = false,
-  mode = "dna"
+  mode = "dna",
+  annotationVisibility,
+  linearBaseWidth,
+  showAminoAcidUnitAsCodon = false,
+  searchRanges
 }) {
-  const sceneModel = useMemo(
-    () => buildCircularSceneModel(sequenceData),
-    [sequenceData]
-  );
+  const isLinear = viewType === "linear";
+  const isRow = viewType === "row";
+  const [rowVisibleStartRow, setRowVisibleStartRow] = useState(0);
+  const resolvedLinearBaseWidth =
+    linearBaseWidth ??
+    Math.min(0.018, 44 / Math.max(getSequenceLength(sequenceData), 1));
+  const sceneModel = useMemo(() => {
+    if (isRow) return null;
+    if (isLinear) {
+      return buildLinearSceneModel(sequenceData, {
+        annotationVisibility,
+        baseWidth: resolvedLinearBaseWidth
+      });
+    }
+    return buildCircularSceneModel(sequenceData, { annotationVisibility });
+  }, [
+    annotationVisibility,
+    isLinear,
+    isRow,
+    resolvedLinearBaseWidth,
+    sequenceData
+  ]);
   const viewerRef = useRef(null);
-  const fixtureName = sequenceData?.name || sceneModel.name;
+  const fixtureName =
+    sequenceData?.name || sceneModel?.name || "Untitled sequence";
   const [renderStats, setRenderStats] = useState(() =>
     collectRenderStats(undefined, { fixtureName })
   );
@@ -108,7 +145,11 @@ export default function ThreeDGeneViewer({
   );
 
   return (
-    <div className={`ove-three-viewer ${className}`} ref={viewerRef}>
+    <div
+      className={`ove-three-viewer ${className}`}
+      data-testid="ove-three-canvas-container"
+      ref={viewerRef}
+    >
       {showSceneStats && <SceneStatsReadout stats={renderStats} />}
       <PickingDebugOverlay
         hoveredId={picking.hoveredId}
@@ -123,37 +164,87 @@ export default function ThreeDGeneViewer({
         selectionRange={selectionRange}
         showPointerPosition={showPointerPosition}
       />
-      <ThreeCircularCanvas
-        sceneModel={sceneModel}
-        onSelectRange={picking.handleClick}
-        onDoubleClickRange={picking.handleDoubleClick}
-        onContextMenuRange={picking.handleContextMenu}
-        onBackgroundContextMenu={picking.handleBackgroundContextMenu}
-        onHoverRange={picking.handleHover}
-        onHoverEnd={picking.handleLeave}
-        showAxes={showAxes}
-        showGrid={showGrid}
-        showBoxHelpers={showBoxHelpers}
-        showLabelBoxes={showLabelBoxes}
-        showPickRay={showPickRay}
-        showPointerPosition={showPointerPosition}
-        pickRay={picking.pickRay}
-        showSceneStats={showSceneStats}
-        selectedAnnotationId={picking.selectedId}
-        hoveredAnnotationId={picking.hoveredId}
-        caretPosition={caretPosition}
-        selectionRange={selectionRange}
-        mode={mode}
-        onCaretPositionChange={handleCaretPositionChange}
-        onPointerPositionChange={setPointerPosition}
-        onSelectionStart={handleSelectionStart}
-        onSelectionMove={handleSelectionMove}
-        onSelectionEnd={handleSelectionEnd}
-        isSelecting={selectionStart !== null}
-        fixtureName={fixtureName}
-        parentRef={viewerRef}
-        onStatsChange={setRenderStats}
-      />
+      {isRow ? (
+        <ThreeRowCanvas
+          sequenceData={sequenceData}
+          visibleStartRow={rowVisibleStartRow}
+          onVisibleStartRowChange={setRowVisibleStartRow}
+          mode={mode}
+          annotationVisibility={annotationVisibility}
+          showAminoAcidUnitAsCodon={showAminoAcidUnitAsCodon}
+          onSelectRange={picking.handleClick}
+          onDoubleClickRange={picking.handleDoubleClick}
+          onContextMenuRange={picking.handleContextMenu}
+          onBackgroundContextMenu={picking.handleBackgroundContextMenu}
+          onHoverRange={picking.handleHover}
+          onHoverEnd={picking.handleLeave}
+          selectedAnnotationId={picking.selectedId}
+          hoveredAnnotationId={picking.hoveredId}
+          caretPosition={caretPosition}
+          selectionRange={selectionRange}
+          searchRanges={searchRanges}
+          onCaretPositionChange={handleCaretPositionChange}
+          onPointerPositionChange={setPointerPosition}
+          onSelectionStart={handleSelectionStart}
+          onSelectionMove={handleSelectionMove}
+          onSelectionEnd={handleSelectionEnd}
+          isSelecting={selectionStart !== null}
+        />
+      ) : isLinear ? (
+        <ThreeLinearCanvas
+          sceneModel={sceneModel}
+          onSelectRange={picking.handleClick}
+          onDoubleClickRange={picking.handleDoubleClick}
+          onContextMenuRange={picking.handleContextMenu}
+          onBackgroundContextMenu={picking.handleBackgroundContextMenu}
+          onHoverRange={picking.handleHover}
+          onHoverEnd={picking.handleLeave}
+          showPointerPosition={showPointerPosition}
+          selectedAnnotationId={picking.selectedId}
+          hoveredAnnotationId={picking.hoveredId}
+          caretPosition={caretPosition}
+          selectionRange={selectionRange}
+          mode={mode}
+          onCaretPositionChange={handleCaretPositionChange}
+          onPointerPositionChange={setPointerPosition}
+          onSelectionStart={handleSelectionStart}
+          onSelectionMove={handleSelectionMove}
+          onSelectionEnd={handleSelectionEnd}
+          isSelecting={selectionStart !== null}
+        />
+      ) : (
+        <ThreeCircularCanvas
+          sceneModel={sceneModel}
+          onSelectRange={picking.handleClick}
+          onDoubleClickRange={picking.handleDoubleClick}
+          onContextMenuRange={picking.handleContextMenu}
+          onBackgroundContextMenu={picking.handleBackgroundContextMenu}
+          onHoverRange={picking.handleHover}
+          onHoverEnd={picking.handleLeave}
+          showAxes={showAxes}
+          showGrid={showGrid}
+          showBoxHelpers={showBoxHelpers}
+          showLabelBoxes={showLabelBoxes}
+          showPickRay={showPickRay}
+          showPointerPosition={showPointerPosition}
+          pickRay={picking.pickRay}
+          showSceneStats={showSceneStats}
+          selectedAnnotationId={picking.selectedId}
+          hoveredAnnotationId={picking.hoveredId}
+          caretPosition={caretPosition}
+          selectionRange={selectionRange}
+          mode={mode}
+          onCaretPositionChange={handleCaretPositionChange}
+          onPointerPositionChange={setPointerPosition}
+          onSelectionStart={handleSelectionStart}
+          onSelectionMove={handleSelectionMove}
+          onSelectionEnd={handleSelectionEnd}
+          isSelecting={selectionStart !== null}
+          fixtureName={fixtureName}
+          parentRef={viewerRef}
+          onStatsChange={setRenderStats}
+        />
+      )}
     </div>
   );
 }

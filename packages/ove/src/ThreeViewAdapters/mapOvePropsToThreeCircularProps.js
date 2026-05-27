@@ -9,13 +9,61 @@ function getAnnotationHandler(props, annotationType) {
   return handlerMap[annotationType];
 }
 
+function getAnnotationRightClickHandler(props, annotationType) {
+  const handlerMap = {
+    feature: props.featureRightClicked,
+    part: props.partRightClicked,
+    primer: props.primerRightClicked,
+    cutsite: props.cutsiteRightClicked,
+    orf: props.orfRightClicked
+  };
+  return handlerMap[annotationType];
+}
+
 function routeAnnotationEvent(props, annotation, userData, event) {
   const handler = getAnnotationHandler(props, annotation?.annotationType);
-  handler?.({ annotation, event, userData });
+  handler?.({ annotation, event: getDomEvent(event), userData });
+}
+
+function noopPersist() {
+  return undefined;
+}
+
+function getDomEvent(event) {
+  const domEvent = event?.nativeEvent || event;
+  if (domEvent && !domEvent.persist) domEvent.persist = noopPersist;
+  return domEvent;
+}
+
+function routeAnnotationRightClickEvent(props, annotation, userData, event) {
+  const handler = getAnnotationRightClickHandler(
+    props,
+    annotation?.annotationType
+  );
+  handler?.({ annotation, event: getDomEvent(event), userData });
+}
+
+function getSequenceData(props) {
+  const sequenceData = props.sequenceData || {};
+
+  return {
+    ...sequenceData,
+    features: sequenceData.filteredFeatures || sequenceData.features,
+    parts: sequenceData.filteredParts || sequenceData.parts,
+    primers: sequenceData.filteredPrimers || sequenceData.primers,
+    cutsites: sequenceData.cutsites || props.cutsites,
+    orfs: sequenceData.orfs || props.orfs
+  };
+}
+
+function getMode(sequenceData) {
+  if (sequenceData.isProtein) return "protein";
+  if (sequenceData.isRna) return "rna";
+  return "dna";
 }
 
 export default function mapOvePropsToThreeCircularProps(props = {}) {
-  const { sequenceData = {} } = props;
+  const sequenceData = getSequenceData(props);
 
   return {
     sequenceData,
@@ -24,7 +72,7 @@ export default function mapOvePropsToThreeCircularProps(props = {}) {
     showLabelBoxes: !!props.showThreeLabelBoxes,
     showPickRay: !!props.showThreePickRay,
     showPointerPosition: !!props.showThreePointerPosition,
-    mode: sequenceData.isProtein ? "protein" : "dna",
+    mode: getMode(sequenceData),
     onSelectRange: (annotation, userData, event) => {
       routeAnnotationEvent(props, annotation, userData, event);
     },
@@ -37,7 +85,7 @@ export default function mapOvePropsToThreeCircularProps(props = {}) {
       );
     },
     onContextMenuRange: (annotation, payload) => {
-      routeAnnotationEvent(
+      routeAnnotationRightClickEvent(
         props,
         annotation,
         payload?.userData,
@@ -45,7 +93,9 @@ export default function mapOvePropsToThreeCircularProps(props = {}) {
       );
     },
     onBackgroundContextMenu: payload => {
-      props.backgroundRightClicked?.({ event: payload?.originalEvent });
+      props.backgroundRightClicked?.({
+        event: getDomEvent(payload?.originalEvent)
+      });
     },
     onCaretPositionChange: position => {
       props.caretPositionUpdate?.(position);

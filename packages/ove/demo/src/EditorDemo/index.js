@@ -95,6 +95,7 @@ const defaultState = {
   adjustCircularLabelSpacing: false,
   bpLimit: undefined,
   nameFontSizeCircularView: false,
+  useThreeRowView: false,
   withVersionHistory: true,
   withRotateCircularView: true,
   withZoomCircularView: true,
@@ -2164,6 +2165,11 @@ doubleClickOverrides: {
               })}
               {renderToggle({
                 that: this,
+                type: "useThreeRowView",
+                info: "Render the Sequence Map tab with the experimental Three.js row adapter."
+              })}
+              {renderToggle({
+                that: this,
                 type: "onPreviewModeFullscreenClose",
                 info: `handle for when fullscreenMode is exited`
               })}
@@ -2814,7 +2820,9 @@ doubleClickOverrides: {
             generatePng={generatePng}
             {...(forceHeightMode && { height: 500 })}
             {...(addMaxInsertSize && { maxInsertSize: 50 })}
-            {...(addAcceptedInsertChars && {getAcceptedInsertChars: () => "acgtACGT"} )}
+            {...(addAcceptedInsertChars && {
+              getAcceptedInsertChars: () => "acgtACGT"
+            })}
             {...(showAminoAcidUnitAsCodon && {
               showAminoAcidUnitAsCodon: true
             })}

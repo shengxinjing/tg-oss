@@ -25,6 +25,13 @@ describe("rowView", function () {
     cy.get("[data-test=jumpToStartButton]").click();
     cy.get("[data-test=jumpToEndButton]").click();
   });
+  it("can mount the Three.js row adapter in the editor", function () {
+    cy.visit("#/Editor");
+    cy.get(`[data-test="useThreeRowView"]`).click({ force: true });
+    cy.get(`[data-testid="ove-three-row-view-adapter"]`).should("exist");
+    cy.get(`[data-testid="ove-three-row-view"]`).should("exist");
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should("exist");
+  });
   it("can click a feature multiple times (some while holding the alt key) and have the row view jump to the start and end of the feature", function () {
     cy.contains("text.veLabelText", "GFPuv").click();
     cy.contains(".veRowViewFeature text", "GFPuv");

@@ -10,6 +10,10 @@ function DemoApp() {
   const [showLabelBoxes, setShowLabelBoxes] = useState(false);
   const [showPickRay, setShowPickRay] = useState(false);
   const [showPointerPosition, setShowPointerPosition] = useState(false);
+  const [showSearchHits, setShowSearchHits] = useState(false);
+  const [showAminoAcidUnitAsCodon, setShowAminoAcidUnitAsCodon] =
+    useState(false);
+  const [viewType, setViewType] = useState("circular");
   const handleSelectRange = annotation => {
     setSelectedFeature(annotation);
     setLastEvent(`click ${annotation.id}`);
@@ -20,6 +24,7 @@ function DemoApp() {
       <section className="ove-three-demo__viewer">
         <ThreeDGeneViewer
           sequenceData={demoSequenceData}
+          viewType={viewType}
           onSelectRange={handleSelectRange}
           onDoubleClickRange={annotation =>
             setLastEvent(`double-click ${annotation.id}`)
@@ -40,11 +45,24 @@ function DemoApp() {
           showLabelBoxes={showLabelBoxes}
           showPickRay={showPickRay}
           showPointerPosition={showPointerPosition}
+          showAminoAcidUnitAsCodon={showAminoAcidUnitAsCodon}
+          searchRanges={showSearchHits ? [{ start: 820, end: 852 }] : []}
         />
       </section>
       <aside className="ove-three-demo__panel">
         <h1>{demoSequenceData.name}</h1>
         <p>{demoSequenceData.sequence.length} bp circular DNA</p>
+        <label className="ove-three-demo__field">
+          <span>View</span>
+          <select
+            value={viewType}
+            onChange={event => setViewType(event.target.value)}
+          >
+            <option value="circular">Circular</option>
+            <option value="linear">Linear</option>
+            <option value="row">Row</option>
+          </select>
+        </label>
         <label className="ove-three-demo__toggle">
           <input
             type="checkbox"
@@ -68,6 +86,24 @@ function DemoApp() {
             onChange={event => setShowPointerPosition(event.target.checked)}
           />
           Pointer position
+        </label>
+        <label className="ove-three-demo__toggle">
+          <input
+            type="checkbox"
+            checked={showSearchHits}
+            onChange={event => setShowSearchHits(event.target.checked)}
+          />
+          Search hits
+        </label>
+        <label className="ove-three-demo__toggle">
+          <input
+            type="checkbox"
+            checked={showAminoAcidUnitAsCodon}
+            onChange={event =>
+              setShowAminoAcidUnitAsCodon(event.target.checked)
+            }
+          />
+          Codon display
         </label>
         <div className="ove-three-demo__features">
           {demoSequenceData.features.map(feature => (

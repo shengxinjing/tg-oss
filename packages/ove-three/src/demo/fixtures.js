@@ -194,6 +194,22 @@ export const mediumCircular = {
       frame: 6,
       forward: false
     }
+  ],
+  translations: [
+    {
+      id: "translation-gfp",
+      name: "GFP translation",
+      start: 762,
+      end: 839,
+      forward: true
+    },
+    {
+      id: "translation-ampr-reverse",
+      name: "AmpR reverse translation",
+      start: 2476,
+      end: 2562,
+      forward: false
+    }
   ]
 };
 

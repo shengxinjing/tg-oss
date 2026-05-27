@@ -134,12 +134,214 @@ Cypress.Commands.add("dragBetweenSimple", (dragSelector, dropSelector) => {
 });
 
 Cypress.Commands.add("tgToggle", (type, onOrOff = true) => {
-  /* eslint-disable no-unexpected-multiline*/
+  const command = onOrOff ? "check" : "uncheck";
 
+  return cy.get(`[data-test="${type}"]`)[command]({ force: true });
+});
+
+function getRegistryEntry(
+  registry,
+  collectionName,
+  nameCollectionName,
+  idOrName
+) {
+  const idFromName = registry?.[nameCollectionName]?.[idOrName];
+  return (
+    registry?.[collectionName]?.[idOrName] ||
+    registry?.[collectionName]?.[idFromName]
+  );
+}
+
+const CANVAS_REGISTRY_TIMEOUT = 10000;
+
+function getCanvasRegistryEntry(collectionName, nameCollectionName, idOrName) {
   return cy
-    .get(`[data-test="${type}"]`)
-    [onOrOff ? "check" : "uncheck"]({ force: true });
-  /* eslint-enable no-unexpected-multiline*/
+    .window({ timeout: CANVAS_REGISTRY_TIMEOUT })
+    .should(win => {
+      const entry = getRegistryEntry(
+        win.Cypress?.oveThreeTestRegistry,
+        collectionName,
+        nameCollectionName,
+        idOrName
+      );
+      expect(entry).to.not.equal(undefined);
+    })
+    .then(win =>
+      getRegistryEntry(
+        win.Cypress.oveThreeTestRegistry,
+        collectionName,
+        nameCollectionName,
+        idOrName
+      )
+    );
+}
+
+Cypress.Commands.add("getCanvasAnnotation", idOrName => {
+  return getCanvasRegistryEntry("annotations", "annotationNames", idOrName);
+});
+
+Cypress.Commands.add("getCanvasAnnotationByType", annotationType => {
+  return cy
+    .window({ timeout: CANVAS_REGISTRY_TIMEOUT })
+    .should(win => {
+      const annotations = Object.values(
+        win.Cypress?.oveThreeTestRegistry?.annotations || {}
+      );
+      expect(
+        annotations.find(
+          annotation => annotation.annotationType === annotationType
+        )
+      ).to.not.equal(undefined);
+    })
+    .then(win => {
+      const annotations = Object.values(
+        win.Cypress.oveThreeTestRegistry.annotations
+      );
+      return annotations.find(
+        annotation => annotation.annotationType === annotationType
+      );
+    });
+});
+
+Cypress.Commands.add("getCanvasLabel", idOrName => {
+  return getCanvasRegistryEntry("labels", "labelNames", idOrName);
+});
+
+function shouldCanvasRegistryEntryState(
+  collectionName,
+  nameCollectionName,
+  idOrName,
+  expectedState
+) {
+  return cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    const entry = getRegistryEntry(
+      win.Cypress?.oveThreeTestRegistry,
+      collectionName,
+      nameCollectionName,
+      idOrName
+    );
+    expect(entry).to.not.equal(undefined);
+    Object.entries(expectedState).forEach(([key, value]) => {
+      expect(entry[key]).to.equal(value);
+    });
+  });
+}
+
+Cypress.Commands.add("shouldCanvasAnnotationState", (idOrName, expectedState) =>
+  shouldCanvasRegistryEntryState(
+    "annotations",
+    "annotationNames",
+    idOrName,
+    expectedState
+  )
+);
+
+Cypress.Commands.add("shouldCanvasLabelState", (idOrName, expectedState) =>
+  shouldCanvasRegistryEntryState(
+    "labels",
+    "labelNames",
+    idOrName,
+    expectedState
+  )
+);
+
+function getRequiredRegistryAnnotation(registry, annotationId) {
+  const annotation = registry?.annotations?.[annotationId];
+  expect(annotation).to.not.equal(undefined);
+  return annotation;
+}
+
+function getRequiredRegistryLabel(registry, annotationId) {
+  const label = registry?.labels?.[annotationId];
+  expect(label).to.not.equal(undefined);
+  return label;
+}
+
+Cypress.Commands.add("shouldHaveCanvasSelection", () => {
+  return cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    const registry = win.Cypress?.oveThreeTestRegistry;
+    const selectedAnnotationId = registry?.selectedAnnotationId;
+    expect(typeof selectedAnnotationId).to.equal("string");
+    expect(selectedAnnotationId.length).to.be.greaterThan(0);
+    getRequiredRegistryAnnotation(registry, selectedAnnotationId);
+  });
+});
+
+Cypress.Commands.add("shouldHaveCanvasHover", () => {
+  return cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    const registry = win.Cypress?.oveThreeTestRegistry;
+    const hoveredAnnotationId = registry?.hoveredAnnotationId;
+    expect(typeof hoveredAnnotationId).to.equal("string");
+    expect(hoveredAnnotationId.length).to.be.greaterThan(0);
+    getRequiredRegistryAnnotation(registry, hoveredAnnotationId);
+  });
+});
+
+Cypress.Commands.add("shouldSelectedCanvasLabelState", expectedState => {
+  return cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    const registry = win.Cypress?.oveThreeTestRegistry;
+    const label = getRequiredRegistryLabel(
+      registry,
+      registry?.selectedAnnotationId
+    );
+    Object.entries(expectedState).forEach(([key, value]) => {
+      expect(label[key]).to.equal(value);
+    });
+  });
+});
+
+Cypress.Commands.add("shouldHoveredCanvasLabelState", expectedState => {
+  return cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    const registry = win.Cypress?.oveThreeTestRegistry;
+    const label = getRequiredRegistryLabel(
+      registry,
+      registry?.hoveredAnnotationId
+    );
+    Object.entries(expectedState).forEach(([key, value]) => {
+      expect(label[key]).to.equal(value);
+    });
+  });
+});
+
+Cypress.Commands.add("clickCanvasAnnotation", (idOrName, options = {}) => {
+  return cy.getCanvasAnnotation(idOrName).then(entry => {
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).click(
+      entry.x,
+      entry.y,
+      { force: true, ...options }
+    );
+  });
+});
+
+Cypress.Commands.add("hoverCanvasAnnotation", idOrName => {
+  return cy.getCanvasAnnotation(idOrName).then(entry => {
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).trigger(
+      "pointermove",
+      {
+        clientX: entry.clientX,
+        clientY: entry.clientY,
+        pointerId: 1,
+        pointerType: "mouse",
+        force: true
+      }
+    );
+  });
+});
+
+Cypress.Commands.add("rightClickCanvasAnnotation", (idOrName, options = {}) => {
+  return cy.getCanvasAnnotation(idOrName).then(entry => {
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).rightclick(
+      entry.x,
+      entry.y,
+      { force: true, ...options }
+    );
+  });
+});
+
+Cypress.Commands.add("assertCanvasLabelsDoNotOverlap", () => {
+  cy.window({ timeout: CANVAS_REGISTRY_TIMEOUT }).should(win => {
+    expect(win.Cypress?.oveThreeTestRegistry?.labelOverlapCount).to.equal(0);
+  });
 });
 
 /**

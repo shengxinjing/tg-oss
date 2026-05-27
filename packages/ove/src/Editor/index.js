@@ -39,6 +39,8 @@ import CircularView from "../CircularView";
 import LinearView from "../LinearView";
 import RowView from "../RowView";
 import ThreeCircularViewAdapter from "../ThreeViewAdapters/ThreeCircularViewAdapter";
+import ThreeLinearViewAdapter from "../ThreeViewAdapters/ThreeLinearViewAdapter";
+import ThreeRowViewAdapter from "../ThreeViewAdapters/ThreeRowViewAdapter";
 import StatusBar from "../StatusBar";
 import DropHandler from "./DropHandler";
 import PropertiesDialog from "../helperComponents/PropertiesDialog";
@@ -559,6 +561,18 @@ export class Editor extends React.Component {
           circular: {
             ..._panelMap.circular,
             comp: ThreeCircularViewAdapter
+          }
+        }),
+        ...(this.props.useThreeLinearView && {
+          rail: {
+            ..._panelMap.rail,
+            comp: ThreeLinearViewAdapter
+          }
+        }),
+        ...(this.props.useThreeRowView && {
+          sequence: {
+            ..._panelMap.sequence,
+            comp: ThreeRowViewAdapter
           }
         }),
         ...this.props.panelMap

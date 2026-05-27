@@ -1,6 +1,12 @@
 const { noop } = require("lodash-es");
 
 describe("zoomLinearView.spec", function () {
+  it("can mount the Three.js linear adapter in the editor rail", function () {
+    cy.visit("#/Editor?useThreeLinearView=true&focusLinearView=true");
+    cy.get(`[data-testid="ove-three-linear-view-adapter"]`).should("exist");
+    cy.get(`[data-testid="ove-three-canvas-container"] canvas`).should("exist");
+  });
+
   it(`zooming to full zoom should have the underlying base pair sequence and amino acids show up.
   araD feature label should be showing in view upon full zoom
   scrolling to the right, labels like araD should be repositioning themselves to be in view`, function () {

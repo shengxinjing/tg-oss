@@ -8,6 +8,8 @@ import {
 import { CircularView } from "./CircularView";
 import { LinearView } from "./LinearView";
 import { RowView } from "./RowView";
+import ThreeLinearViewAdapter from "./ThreeViewAdapters/ThreeLinearViewAdapter";
+import ThreeRowViewAdapter from "./ThreeViewAdapters/ThreeRowViewAdapter";
 
 import { HoveredIdContext } from "./helperComponents/withHover";
 import { visibilityDefaultValues } from "./redux/annotationVisibility";
@@ -41,6 +43,8 @@ export default props => {
     withCaretEnabled,
     withSelectionEnabled,
     smallSlider,
+    useThreeLinearView,
+    useThreeRowView,
     withVisibilityOptions,
     minimalPreviewTypeBtns,
     withFullscreen,
@@ -104,9 +108,11 @@ export default props => {
     ? CircularView
     : _sequenceData.isOligo && _sequenceData.sequence
       ? SimpleOligoPreview
-      : LinearView;
+      : useThreeLinearView
+        ? ThreeLinearViewAdapter
+        : LinearView;
   if (withChoosePreviewType && previewType === "row") {
-    Component = RowView;
+    Component = useThreeRowView ? ThreeRowViewAdapter : RowView;
     tickSpacing = undefined;
   }
 

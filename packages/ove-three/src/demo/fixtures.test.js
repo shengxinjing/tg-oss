@@ -42,6 +42,12 @@ describe("ove-three demo fixtures", () => {
     assert(denseAnnotations.cutsites.length >= 200);
   });
 
+  it("includes row biological layers in the default demo fixture", () => {
+    assert(mediumCircular.cutsites.length > 0);
+    assert(mediumCircular.orfs.length > 0);
+    assert(mediumCircular.translations.length > 0);
+  });
+
   it("can generate deterministic stress fixtures", () => {
     const stress = generateStressSequenceData({
       sequenceLength: 4096,

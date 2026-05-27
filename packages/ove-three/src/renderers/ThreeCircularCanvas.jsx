@@ -1,5 +1,6 @@
-import React from "react";
-import { Canvas } from "@react-three/fiber";
+import React, { Suspense, useEffect, useRef } from "react";
+import * as THREE from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
 import CircularAnnotationLayer from "../layers/CircularAnnotationLayer";
 import CircularAxisLayer from "../layers/CircularAxisLayer";
@@ -11,7 +12,17 @@ import CircularLabelLayer from "../layers/CircularLabelLayer";
 import CircularOrfLayer from "../layers/CircularOrfLayer";
 import SelectionLayer from "../layers/SelectionLayer";
 import PerfOverlay from "../perf/PerfOverlay";
+import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointerToCircularPosition from "../interaction/mapPointerToCircularPosition";
+import setOrbitControlsEnabled from "../interaction/setOrbitControlsEnabled";
+import {
+  buildAnnotationRegistryEntries,
+  buildLabelRegistryEntries,
+  clearTestRegistry,
+  createRegistrySnapshot,
+  projectRegistryEntries,
+  publishTestRegistry
+} from "../debug/testRegistry";
 
 function mapCircularEvent(event, { radius, sequenceLength, mode }) {
   return mapPointerToCircularPosition(
@@ -36,9 +47,13 @@ function CircularPointerHitArea({
   onSelectionMove,
   onSelectionEnd,
   isSelecting,
-  showPointerPosition
+  showPointerPosition,
+  controlsRef
 }) {
   const radius = 3.35;
+  const restoreOrbitControls = () => {
+    setOrbitControlsEnabled(controlsRef, true);
+  };
 
   return (
     <mesh
@@ -60,15 +75,23 @@ function CircularPointerHitArea({
         );
       }}
       onPointerDown={event => {
+        if (!isPrimaryPointerButton(event)) return;
         const mapped = mapCircularEvent(event, {
           radius,
           sequenceLength,
           mode
         });
         if (!mapped) return;
+        event.stopPropagation();
+        event.target.setPointerCapture?.(event.pointerId);
+        setOrbitControlsEnabled(controlsRef, false);
         onSelectionStart?.(mapped.position);
       }}
       onPointerUp={event => {
+        if (!isPrimaryPointerButton(event)) return;
+        event.stopPropagation();
+        event.target.releasePointerCapture?.(event.pointerId);
+        restoreOrbitControls();
         if (!isSelecting) return;
         const mapped = mapCircularEvent(event, {
           radius,
@@ -79,6 +102,8 @@ function CircularPointerHitArea({
         onSelectionEnd?.(mapped.position);
       }}
       onClick={event => {
+        if (!isPrimaryPointerButton(event)) return;
+        event.stopPropagation();
         const mapped = mapCircularEvent(event, {
           radius,
           sequenceLength,
@@ -87,11 +112,77 @@ function CircularPointerHitArea({
         if (!mapped) return;
         onCaretPositionChange?.(mapped.position);
       }}
+      onPointerCancel={restoreOrbitControls}
+      onLostPointerCapture={restoreOrbitControls}
     >
       <planeGeometry args={[radius * 2, radius * 2]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>
   );
+}
+
+function canPublishTestRegistry() {
+  return typeof window !== "undefined" && !!window.Cypress;
+}
+
+function projectToCanvas(camera, gl, worldPosition) {
+  const rect = gl.domElement.getBoundingClientRect();
+  const vector = new THREE.Vector3(...worldPosition).project(camera);
+  const x = (vector.x * 0.5 + 0.5) * rect.width;
+  const y = (-vector.y * 0.5 + 0.5) * rect.height;
+
+  return {
+    x,
+    y,
+    clientX: rect.left + x,
+    clientY: rect.top + y
+  };
+}
+
+function TestRegistryPublisher({
+  sceneModel,
+  selectedAnnotationId,
+  hoveredAnnotationId
+}) {
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    return () => {
+      if (canPublishTestRegistry()) clearTestRegistry(window);
+    };
+  }, []);
+
+  useFrame(() => {
+    if (!canPublishTestRegistry()) return;
+    const project = worldPosition => projectToCanvas(camera, gl, worldPosition);
+    const annotations = projectRegistryEntries(
+      buildAnnotationRegistryEntries(sceneModel, {
+        selectedAnnotationId,
+        hoveredAnnotationId
+      }),
+      project
+    );
+    const labels = projectRegistryEntries(
+      buildLabelRegistryEntries({
+        sceneModel,
+        selectedAnnotationId,
+        hoveredAnnotationId
+      }),
+      project
+    );
+
+    publishTestRegistry(
+      createRegistrySnapshot({
+        annotations,
+        labels,
+        selectedAnnotationId,
+        hoveredAnnotationId
+      }),
+      window
+    );
+  });
+
+  return null;
 }
 
 function CircularScene({
@@ -125,6 +216,7 @@ function CircularScene({
   onStatsChange
 }) {
   const radius = 2.4;
+  const controlsRef = useRef(null);
 
   return (
     <>
@@ -133,6 +225,11 @@ function CircularScene({
       <directionalLight position={[3, 5, 4]} intensity={1.3} />
       {showGrid && <gridHelper args={[7, 14, "#334155", "#1e293b"]} />}
       {showAxes && <axesHelper args={[3.2]} />}
+      <TestRegistryPublisher
+        sceneModel={sceneModel}
+        selectedAnnotationId={selectedAnnotationId}
+        hoveredAnnotationId={hoveredAnnotationId}
+      />
       <CircularPointerHitArea
         sequenceLength={sceneModel.sequenceLength}
         mode={mode}
@@ -143,6 +240,7 @@ function CircularScene({
         onSelectionEnd={onSelectionEnd}
         isSelecting={isSelecting}
         showPointerPosition={showPointerPosition}
+        controlsRef={controlsRef}
       />
       <CircularBackboneLayer radius={radius} />
       <SelectionLayer
@@ -211,7 +309,12 @@ function CircularScene({
           lineWidth={2}
         />
       )}
-      <OrbitControls enableDamping makeDefault />
+      <OrbitControls
+        ref={controlsRef}
+        enabled={!isSelecting}
+        enableDamping
+        makeDefault
+      />
       {showSceneStats && (
         <PerfOverlay
           fixtureName={fixtureName}
@@ -261,36 +364,38 @@ export default function ThreeCircularCanvas({
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onContextMenu={onBackgroundContextMenu}
     >
-      <CircularScene
-        sceneModel={sceneModel}
-        onSelectRange={onSelectRange}
-        onDoubleClickRange={onDoubleClickRange}
-        onContextMenuRange={onContextMenuRange}
-        onHoverRange={onHoverRange}
-        onHoverEnd={onHoverEnd}
-        showAxes={showAxes}
-        showGrid={showGrid}
-        showBoxHelpers={showBoxHelpers}
-        showLabelBoxes={showLabelBoxes}
-        showPickRay={showPickRay}
-        showPointerPosition={showPointerPosition}
-        pickRay={pickRay}
-        showSceneStats={showSceneStats}
-        selectedAnnotationId={selectedAnnotationId}
-        hoveredAnnotationId={hoveredAnnotationId}
-        caretPosition={caretPosition}
-        selectionRange={selectionRange}
-        mode={mode}
-        onCaretPositionChange={onCaretPositionChange}
-        onPointerPositionChange={onPointerPositionChange}
-        onSelectionStart={onSelectionStart}
-        onSelectionMove={onSelectionMove}
-        onSelectionEnd={onSelectionEnd}
-        isSelecting={isSelecting}
-        fixtureName={fixtureName}
-        parentRef={parentRef}
-        onStatsChange={onStatsChange}
-      />
+      <Suspense fallback={null}>
+        <CircularScene
+          sceneModel={sceneModel}
+          onSelectRange={onSelectRange}
+          onDoubleClickRange={onDoubleClickRange}
+          onContextMenuRange={onContextMenuRange}
+          onHoverRange={onHoverRange}
+          onHoverEnd={onHoverEnd}
+          showAxes={showAxes}
+          showGrid={showGrid}
+          showBoxHelpers={showBoxHelpers}
+          showLabelBoxes={showLabelBoxes}
+          showPickRay={showPickRay}
+          showPointerPosition={showPointerPosition}
+          pickRay={pickRay}
+          showSceneStats={showSceneStats}
+          selectedAnnotationId={selectedAnnotationId}
+          hoveredAnnotationId={hoveredAnnotationId}
+          caretPosition={caretPosition}
+          selectionRange={selectionRange}
+          mode={mode}
+          onCaretPositionChange={onCaretPositionChange}
+          onPointerPositionChange={onPointerPositionChange}
+          onSelectionStart={onSelectionStart}
+          onSelectionMove={onSelectionMove}
+          onSelectionEnd={onSelectionEnd}
+          isSelecting={isSelecting}
+          fixtureName={fixtureName}
+          parentRef={parentRef}
+          onStatsChange={onStatsChange}
+        />
+      </Suspense>
     </Canvas>
   );
 }

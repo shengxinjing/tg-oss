@@ -12,6 +12,8 @@ const defaultState = {
   noSequence: false,
   hideNameAndInfo: false,
   circular: false,
+  useThreeLinearView: false,
+  useThreeRowView: false,
   changeSize: false,
   togglePartColor: false,
   toggleNoRedux: false
@@ -117,6 +119,8 @@ export default class SimpleCircularOrLinearViewDemo extends React.Component {
             {renderToggle({ that: this, type: "hideNameAndInfo" })}
             {/* {renderToggle({ that: this, type: "showCutsites" })} */}
             {renderToggle({ that: this, type: "circular" })}
+            {renderToggle({ that: this, type: "useThreeLinearView" })}
+            {renderToggle({ that: this, type: "useThreeRowView" })}
             {renderToggle({ that: this, type: "withAdditionalParts" })}
             {renderToggle({ that: this, type: "withCaretEnabled" })}
             {renderToggle({ that: this, type: "withSelectionEnabled" })}

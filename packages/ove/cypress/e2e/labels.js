@@ -80,3 +80,21 @@ describe("label tests", () => {
     );
   });
 });
+
+describe("three circular label registry", () => {
+  it("tracks selected and hovered labels without broad overlap", () => {
+    cy.visit("#/Editor?useThreeCircularView=true&showThreePickRay=true");
+    cy.get(`[data-testid="ove-three-circular-view-adapter"]`).should("exist");
+
+    cy.getCanvasLabel("araD").should(label => {
+      expect(label.name).to.eq("araD");
+    });
+    cy.assertCanvasLabelsDoNotOverlap();
+
+    cy.clickCanvasAnnotation("araD");
+    cy.shouldSelectedCanvasLabelState({ selected: true });
+
+    cy.hoverCanvasAnnotation("araD");
+    cy.shouldHoveredCanvasLabelState({ hovered: true });
+  });
+});

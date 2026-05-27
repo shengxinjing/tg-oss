@@ -17,6 +17,10 @@ export {
 } from "./CircularView";
 export { default as ThreeCircularViewAdapter } from "./ThreeViewAdapters/ThreeCircularViewAdapter";
 export { default as mapOvePropsToThreeCircularProps } from "./ThreeViewAdapters/mapOvePropsToThreeCircularProps";
+export { default as ThreeLinearViewAdapter } from "./ThreeViewAdapters/ThreeLinearViewAdapter";
+export { default as mapOvePropsToThreeLinearProps } from "./ThreeViewAdapters/mapOvePropsToThreeLinearProps";
+export { default as ThreeRowViewAdapter } from "./ThreeViewAdapters/ThreeRowViewAdapter";
+export { default as mapOvePropsToThreeRowProps } from "./ThreeViewAdapters/mapOvePropsToThreeRowProps";
 export { default as SimpleCircularOrLinearView } from "./SimpleCircularOrLinearView";
 export { default as RowView, RowView as RowViewUnconnected } from "./RowView";
 export { default as RowItem } from "./RowItem";
