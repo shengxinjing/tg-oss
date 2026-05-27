@@ -95,7 +95,6 @@ const defaultState = {
   adjustCircularLabelSpacing: false,
   bpLimit: undefined,
   nameFontSizeCircularView: false,
-  useThreeRowView: false,
   withVersionHistory: true,
   withRotateCircularView: true,
   withZoomCircularView: true,
@@ -2162,11 +2161,6 @@ doubleClickOverrides: {
                 that: this,
                 type: "maxAnnotationsToDisplayAdjustment",
                 info: `pass maxAnnotationsToDisplay={{features: 5}} to the <Editor> to adjust the maximum number of features to display to 5 (for example). Primers, cutsites and parts can also be adjusted. Passing this option will disable the user from being able to manually adjust the annotation limits via the view > limits menu`
-              })}
-              {renderToggle({
-                that: this,
-                type: "useThreeRowView",
-                info: "Render the Sequence Map tab with the experimental Three.js row adapter."
               })}
               {renderToggle({
                 that: this,

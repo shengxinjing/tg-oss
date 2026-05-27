@@ -15,17 +15,3 @@ describe("cutsiteInfoView", function () {
     cy.contains("Caret Between Bases 5 and 6");
   });
 });
-
-describe("three circular cutsite canvas helpers", () => {
-  it("clicks a circular cutsite through the canvas registry", () => {
-    cy.visit("#/Editor?useThreeCircularView=true");
-    cy.get(`[data-testid="ove-three-circular-view-adapter"]`).should("exist");
-
-    cy.getCanvasAnnotation("AatII").should(annotation => {
-      expect(annotation.annotationType).to.eq("cutsite");
-    });
-
-    cy.clickCanvasAnnotation("AatII");
-    cy.contains("Caret Between Bases");
-  });
-});

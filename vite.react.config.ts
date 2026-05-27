@@ -100,7 +100,7 @@ export default ({ name, dir }: { name: string; dir: string }) =>
         loader: "jsx",
         include: sourceJSPattern,
         exclude: [],
-        keepNames: !isDemo,
+        keepNames: true,
         minifyIdentifiers: false,
         minifySyntax: false
       },

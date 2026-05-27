@@ -2,3 +2,6 @@ export { default as ThreeDGeneViewer } from "./ThreeDGeneViewer";
 export { default as buildThreeDSceneModel } from "./buildThreeDSceneModel";
 export { default as buildLinearSceneModel } from "./model/buildLinearSceneModel";
 export { default as buildRowSceneModel } from "./model/buildRowSceneModel";
+export { default as mapOvePropsToThreeCircularProps } from "./adapters/mapOvePropsToThreeCircularProps";
+export { default as mapOvePropsToThreeLinearProps } from "./adapters/mapOvePropsToThreeLinearProps";
+export { default as mapOvePropsToThreeRowProps } from "./adapters/mapOvePropsToThreeRowProps";

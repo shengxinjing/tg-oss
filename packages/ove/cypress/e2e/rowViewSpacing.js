@@ -14,12 +14,4 @@ describe("rowViewSpacing.spec", function () {
     cy.get(`.bp3-slider-label:contains(8)`).click();
     cy.get(`[data-row-number="0"] [data-tick-mark="50"]`).should("exist");
   });
-  it("can mount the Three.js row adapter with a scroll spacer", () => {
-    cy.visit("/#/Editor");
-    cy.get(`[data-test="useThreeRowView"]`).click({ force: true });
-    cy.get(`[data-testid="ove-three-row-view-adapter"]`).should("exist");
-    cy.get(".ove-three-row-scroll-spacer")
-      .invoke("height")
-      .should("be.greaterThan", 0);
-  });
 });

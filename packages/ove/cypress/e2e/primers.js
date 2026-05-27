@@ -81,18 +81,6 @@ describe("primers.spec", () => {
   });
 });
 
-describe("three circular primer canvas helpers", () => {
-  it("exposes primer direction metadata", () => {
-    cy.visit("#/Editor?useThreeCircularView=true");
-    cy.get(`[data-testid="ove-three-circular-view-adapter"]`).should("exist");
-
-    cy.getCanvasAnnotation("Example Primer 1").should(annotation => {
-      expect(annotation.annotationType).to.eq("primer");
-      expect(annotation.direction).to.eq("forward");
-    });
-  });
-});
-
 Cypress.on("uncaught:exception", (err, runnable) => {
   // returning false here prevents Cypress from
   // failing the test

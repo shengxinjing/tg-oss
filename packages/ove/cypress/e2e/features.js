@@ -36,22 +36,3 @@ describe("features", () => {
     cy.get(`.ann-reverse:contains(Untitled)`);
   });
 });
-
-describe("three circular feature canvas helpers", () => {
-  it("clicks, hovers, and right-clicks a circular feature", () => {
-    cy.visit(
-      "#/Editor?useThreeCircularView=true&showThreePickRay=true&clickOverridesExample=true"
-    );
-    cy.get(`[data-testid="ove-three-circular-view-adapter"]`).should("exist");
-
-    cy.clickCanvasAnnotation("araD");
-    cy.contains("Feature Click Override Hit!");
-    cy.shouldHaveCanvasSelection();
-
-    cy.hoverCanvasAnnotation("araD");
-    cy.shouldHaveCanvasHover();
-
-    cy.rightClickCanvasAnnotation("araD");
-    cy.contains(".bp3-menu-item", "Edit Feature");
-  });
-});

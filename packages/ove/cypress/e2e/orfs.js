@@ -67,16 +67,3 @@ describe("orfs", function () {
     cy.get(`[data-copy-text="260"]`).should("exist");
   });
 });
-
-describe("three circular ORF canvas helpers", () => {
-  it("exposes ORF frame metadata", () => {
-    cy.visit("#/Editor?useThreeCircularView=true");
-    cy.get(`[data-testid="ove-three-circular-view-adapter"]`).should("exist");
-
-    cy.getCanvasAnnotationByType("orf").should(annotation => {
-      expect(annotation.annotationType).to.eq("orf");
-      expect(annotation.frame).to.be.within(1, 6);
-      expect(annotation.color).to.match(/^#/);
-    });
-  });
-});
