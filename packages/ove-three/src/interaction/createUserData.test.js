@@ -31,7 +31,8 @@ describe("createUserData", () => {
       end: 25,
       segmentStart: 10,
       segmentEnd: 25,
-      direction: "forward"
+      direction: "forward",
+      pickPriority: 60
     });
   });
 });

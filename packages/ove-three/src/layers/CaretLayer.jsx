@@ -52,12 +52,12 @@ function RowCaretLayer({ position = -1, sceneModel }) {
           [x, y - 0.32, 0.09],
           [x, y + 0.25, 0.09]
         ]}
-        color="#f8fafc"
+        color="#111827"
         lineWidth={2}
       />
       <mesh position={[x, y + 0.31, 0.1]}>
         <sphereGeometry args={[0.04, 16, 16]} />
-        <meshBasicMaterial color="#f8fafc" />
+        <meshBasicMaterial color="#111827" />
       </mesh>
     </group>
   );

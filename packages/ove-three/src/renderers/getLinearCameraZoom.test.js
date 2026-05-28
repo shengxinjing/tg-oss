@@ -12,8 +12,8 @@ describe("getLinearCameraZoom", () => {
     });
     const contentWidthRatio = (modelWidth * zoom) / canvasWidth;
 
-    expect(contentWidthRatio).toBeGreaterThan(0.68);
-    expect(contentWidthRatio).toBeLessThan(0.82);
+    expect(contentWidthRatio).toBeGreaterThan(0.84);
+    expect(contentWidthRatio).toBeLessThan(0.92);
   });
 
   it("keeps the linear map inside a short canvas", () => {
@@ -24,6 +24,6 @@ describe("getLinearCameraZoom", () => {
     });
     const visibleHeight = 140 / zoom;
 
-    expect(visibleHeight).toBeGreaterThan(3.2);
+    expect(visibleHeight).toBeGreaterThan(8.1);
   });
 });

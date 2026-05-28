@@ -4,6 +4,8 @@ import { useHelper } from "@react-three/drei";
 import createArrowArcGeometry from "../geometry/createArrowArcGeometry";
 import createArcRibbonGeometry from "../geometry/createArcRibbonGeometry";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 
 const fallbackColors = {
   promoter: "#8b5cf6",
@@ -107,19 +109,30 @@ function AnnotationRibbon({
       name={annotation.name || annotation.id}
       userData={userData}
       onPointerOver={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         onHoverRange?.(annotation, event.object.userData, event);
       }}
       onPointerOut={onHoverEnd}
       onClick={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         onSelectRange?.(annotation, event.object.userData, event);
       }}
       onDoubleClick={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         onDoubleClickRange?.(annotation, event.object.userData, event);
       }}
+      onPointerUp={event => {
+        if (!isContextPointerButton(event)) return;
+        if (!shouldHandlePick(event, event.object.userData)) return;
+        event.stopPropagation();
+        event.nativeEvent?.preventDefault?.();
+        onContextMenuRange?.(annotation, event.object.userData, event);
+      }}
       onContextMenu={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         event.nativeEvent?.preventDefault?.();
         onContextMenuRange?.(annotation, event.object.userData, event);

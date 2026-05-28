@@ -1,6 +1,9 @@
 import React from "react";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 import SafeText from "./SafeText";
+import rowMapStyle from "./rowMapStyle";
 
 function getRowY(row, sceneModel) {
   const top = ((sceneModel.visibleRows.length - 1) * sceneModel.rowHeight) / 2;
@@ -44,31 +47,42 @@ function RowCutsite({
         name={cutsite.label}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(eventAnnotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(eventAnnotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(eventAnnotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(eventAnnotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(eventAnnotation, event.object.userData, event);
         }}
       >
         <planeGeometry args={[0.02, 0.5]} />
-        <meshBasicMaterial color="#fb923c" />
+        <meshBasicMaterial color={rowMapStyle.cutsiteColor} />
       </mesh>
       <SafeText
         position={[0.04, 0.28, 0.02]}
-        color="#fed7aa"
-        fontSize={0.085}
+        color={rowMapStyle.cutsiteTextColor}
+        fontSize={0.07}
         anchorX="left"
         anchorY="middle"
         whiteSpace="nowrap"

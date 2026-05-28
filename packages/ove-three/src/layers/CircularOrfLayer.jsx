@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import * as THREE from "three";
 import createArrowArcGeometry from "../geometry/createArrowArcGeometry";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 
 const frameColors = [
   "#38bdf8",
@@ -83,6 +85,7 @@ function OrfArc({
       name={annotation.name || annotation.id}
       userData={userData}
       onPointerOver={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         setHovered(true);
         onHoverRange?.(annotation, event.object.userData, event);
@@ -92,14 +95,24 @@ function OrfArc({
         onHoverEnd?.();
       }}
       onClick={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         onSelectRange?.(annotation, event.object.userData, event);
       }}
       onDoubleClick={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         onDoubleClickRange?.(annotation, event.object.userData, event);
       }}
+      onPointerUp={event => {
+        if (!isContextPointerButton(event)) return;
+        if (!shouldHandlePick(event, event.object.userData)) return;
+        event.stopPropagation();
+        event.nativeEvent?.preventDefault?.();
+        onContextMenuRange?.(annotation, event.object.userData, event);
+      }}
       onContextMenu={event => {
+        if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();
         event.nativeEvent?.preventDefault?.();
         onContextMenuRange?.(annotation, event.object.userData, event);

@@ -98,7 +98,7 @@
   height: 100%;
   min-height: 480px;
   overflow: hidden;
-  background: #07111f;
+  background: #f8fafc;
 }
 
 .ove-three-row-canvas-sticky {
@@ -154,6 +154,8 @@
 }
 
 .ove-three-demo__panel {
+  max-height: 100vh;
+  overflow: auto;
   padding: 20px;
   background: rgba(7, 17, 31, 0.88);
   border-left: 1px solid rgba(148, 163, 184, 0.24);
@@ -198,6 +200,49 @@
   padding: 7px 8px;
   background: #0f172a;
   color: #e5eefb;
+}
+
+.ove-three-demo__button {
+  width: 100%;
+  border: 1px solid rgba(125, 211, 252, 0.38);
+  border-radius: 6px;
+  padding: 9px 10px;
+  margin: 0 0 16px;
+  background: #12304b;
+  color: #e0f2fe;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ove-three-demo__button:hover {
+  background: #16466f;
+}
+
+.ove-three-demo__verification {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.ove-three-demo__verification div {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+}
+
+.ove-three-demo__verification span {
+  color: #93a4ba;
+}
+
+.ove-three-demo__verification strong {
+  overflow: hidden;
+  color: #dbeafe;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ove-three-demo__feature {

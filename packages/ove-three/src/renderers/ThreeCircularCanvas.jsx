@@ -12,9 +12,11 @@ import CircularLabelLayer from "../layers/CircularLabelLayer";
 import CircularOrfLayer from "../layers/CircularOrfLayer";
 import SelectionLayer from "../layers/SelectionLayer";
 import PerfOverlay from "../perf/PerfOverlay";
+import NativeContextMenuPicker from "../interaction/NativeContextMenuPicker";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointerToCircularPosition from "../interaction/mapPointerToCircularPosition";
 import setOrbitControlsEnabled from "../interaction/setOrbitControlsEnabled";
+import getCanvasDpr from "./getCanvasDpr";
 import {
   buildAnnotationRegistryEntries,
   buildLabelRegistryEntries,
@@ -190,6 +192,7 @@ function CircularScene({
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
+  onBackgroundContextMenu,
   onHoverRange,
   onHoverEnd,
   showAxes,
@@ -229,6 +232,11 @@ function CircularScene({
         sceneModel={sceneModel}
         selectedAnnotationId={selectedAnnotationId}
         hoveredAnnotationId={hoveredAnnotationId}
+      />
+      <NativeContextMenuPicker
+        sceneModel={sceneModel}
+        onContextMenuRange={onContextMenuRange}
+        onBackgroundContextMenu={onBackgroundContextMenu}
       />
       <CircularPointerHitArea
         sequenceLength={sceneModel.sequenceLength}
@@ -355,14 +363,20 @@ export default function ThreeCircularCanvas({
   isSelecting = false,
   fixtureName,
   parentRef,
-  onStatsChange
+  onStatsChange,
+  maxDpr = 2,
+  preserveDrawingBuffer = false
 }) {
   return (
     <Canvas
+      data-testid="ove-three-webgl-canvas"
       camera={{ position: [0, 5.1, 7.2], fov: 45, near: 0.1, far: 100 }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-      onContextMenu={onBackgroundContextMenu}
+      dpr={getCanvasDpr(maxDpr)}
+      gl={{
+        antialias: true,
+        powerPreference: "high-performance",
+        preserveDrawingBuffer
+      }}
     >
       <Suspense fallback={null}>
         <CircularScene
@@ -370,6 +384,7 @@ export default function ThreeCircularCanvas({
           onSelectRange={onSelectRange}
           onDoubleClickRange={onDoubleClickRange}
           onContextMenuRange={onContextMenuRange}
+          onBackgroundContextMenu={onBackgroundContextMenu}
           onHoverRange={onHoverRange}
           onHoverEnd={onHoverEnd}
           showAxes={showAxes}

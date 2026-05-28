@@ -1,6 +1,9 @@
 import React from "react";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 import SafeText from "./SafeText";
+import rowMapStyle from "./rowMapStyle";
 
 function getRowY(row, sceneModel) {
   const top = ((sceneModel.visibleRows.length - 1) * sceneModel.rowHeight) / 2;
@@ -46,31 +49,42 @@ function RowTranslationCodon({
         name={translation.label}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(eventAnnotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(eventAnnotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(eventAnnotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(eventAnnotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(eventAnnotation, event.object.userData, event);
         }}
       >
         <planeGeometry args={[Math.max(codon.width, 0.04), 0.16]} />
-        <meshBasicMaterial color={codon.color} transparent opacity={0.78} />
+        <meshBasicMaterial color={codon.color} transparent opacity={0.58} />
       </mesh>
       <SafeText
         position={[0, 0, 0.02]}
-        color="#07111f"
-        fontSize={0.08}
+        color={rowMapStyle.translationTextColor}
+        fontSize={0.065}
         anchorX="center"
         anchorY="middle"
         whiteSpace="nowrap"

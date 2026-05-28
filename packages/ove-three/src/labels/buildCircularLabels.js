@@ -42,6 +42,7 @@ function buildLabel(
     leaderRadius,
     scale,
     fontSize,
+    fontSizeWorld,
     selectedAnnotationId,
     hoveredAnnotationId
   }
@@ -69,10 +70,22 @@ function buildLabel(
     y: position[2] * scale,
     width: size.width,
     height: size.height,
+    fontSizeWorld,
     priority: getPriority(annotation),
     selected: selectedAnnotationId === annotation.id,
     hovered: hoveredAnnotationId === annotation.id
   };
+}
+
+function getDenseFontSize(labelCount) {
+  if (labelCount > 160) return 0.078;
+  if (labelCount > 90) return 0.092;
+  return 0.115;
+}
+
+function keepDenseLabel(label) {
+  if (label.selected || label.hovered) return true;
+  return label.annotationType !== "cutsite";
 }
 
 export default function buildCircularLabels({
@@ -81,9 +94,19 @@ export default function buildCircularLabels({
   leaderRadius = 2.92,
   scale = 120,
   fontSize = 12,
+  denseLabelThreshold = 120,
+  maxVisibleLabels = 72,
   selectedAnnotationId,
   hoveredAnnotationId
 } = {}) {
+  const rawLabelCount = (sceneModel.annotations || []).reduce(
+    (count, annotation) =>
+      labelableTypes.has(annotation.annotationType)
+        ? count + annotation.segments.length
+        : count,
+    0
+  );
+  const fontSizeWorld = getDenseFontSize(rawLabelCount);
   const labels = (sceneModel.annotations || [])
     .filter(annotation => labelableTypes.has(annotation.annotationType))
     .flatMap(annotation =>
@@ -93,11 +116,18 @@ export default function buildCircularLabels({
           leaderRadius,
           scale,
           fontSize,
+          fontSizeWorld,
           selectedAnnotationId,
           hoveredAnnotationId
         })
       )
     );
+  const densityManagedLabels =
+    labels.length > denseLabelThreshold
+      ? labels.filter(keepDenseLabel)
+      : labels;
 
-  return avoidCircularLabelCollisions(labels);
+  return avoidCircularLabelCollisions(densityManagedLabels, {
+    maxVisibleLabels
+  });
 }

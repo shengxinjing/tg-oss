@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import getRowCameraZoom from "./getRowCameraZoom";
+import getRowCameraZoom, { getRowCameraTargetY } from "./getRowCameraZoom";
 
 describe("getRowCameraZoom", () => {
   it("scales row content to a usable width on a large canvas", () => {
@@ -27,5 +27,19 @@ describe("getRowCameraZoom", () => {
     const visibleHeight = 220 / zoom;
 
     expect(visibleHeight).toBeGreaterThan(3.9);
+  });
+
+  it("moves the camera so row content starts near the top", () => {
+    const zoom = 200;
+    const targetY = getRowCameraTargetY({
+      canvasHeight: 1000,
+      zoom,
+      visibleRowCount: 10,
+      rowHeight: 0.78
+    });
+    const visibleTop = targetY + 1000 / zoom / 2;
+    const topRowContentY = ((10 - 1) * 0.78) / 2 + 0.64;
+
+    expect(visibleTop - topRowContentY).toBeCloseTo(0.28, 2);
   });
 });

@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import ThreeCircularCanvas from "./renderers/ThreeCircularCanvas";
 import ThreeLinearCanvas from "./renderers/ThreeLinearCanvas";
 import ThreeRowCanvas from "./renderers/ThreeRowCanvas";
@@ -8,6 +14,7 @@ import PickingDebugOverlay from "./debug/PickingDebugOverlay";
 import PointerPositionDebugOverlay from "./debug/PointerPositionDebugOverlay";
 import useRaycastPicking from "./interaction/useRaycastPicking";
 import collectRenderStats from "./perf/collectRenderStats";
+import getSceneRevisionKey from "./model/getSceneRevisionKey";
 import "./style.css";
 
 function SceneStatsReadout({ stats }) {
@@ -74,6 +81,8 @@ export default function ThreeDGeneViewer({
   mode = "dna",
   annotationVisibility,
   linearBaseWidth,
+  maxDpr = 2,
+  preserveDrawingBuffer = false,
   showAminoAcidUnitAsCodon = false,
   searchRanges
 }) {
@@ -115,6 +124,27 @@ export default function ThreeDGeneViewer({
     onContextMenuRange,
     onBackgroundContextMenu
   });
+  const { resetPicking } = picking;
+  const sceneRevisionKey = useMemo(
+    () =>
+      getSceneRevisionKey({
+        sequenceData,
+        annotationVisibility,
+        viewType
+      }),
+    [annotationVisibility, sequenceData, viewType]
+  );
+
+  useEffect(() => {
+    setRowVisibleStartRow(0);
+    setCaretPosition(0);
+    setPointerPosition(null);
+    setSelectionStart(null);
+    setSelectionRange(null);
+    setRenderStats(collectRenderStats(undefined, { fixtureName }));
+    resetPicking();
+  }, [fixtureName, resetPicking, sceneRevisionKey]);
+
   const handleCaretPositionChange = useCallback(
     position => {
       setCaretPosition(position);
@@ -148,6 +178,7 @@ export default function ThreeDGeneViewer({
     <div
       className={`ove-three-viewer ${className}`}
       data-testid="ove-three-canvas-container"
+      data-scene-revision={sceneRevisionKey}
       ref={viewerRef}
     >
       {showSceneStats && <SceneStatsReadout stats={renderStats} />}
@@ -166,6 +197,7 @@ export default function ThreeDGeneViewer({
       />
       {isRow ? (
         <ThreeRowCanvas
+          key={`row:${sceneRevisionKey}`}
           sequenceData={sequenceData}
           visibleStartRow={rowVisibleStartRow}
           onVisibleStartRowChange={setRowVisibleStartRow}
@@ -189,9 +221,16 @@ export default function ThreeDGeneViewer({
           onSelectionMove={handleSelectionMove}
           onSelectionEnd={handleSelectionEnd}
           isSelecting={selectionStart !== null}
+          showSceneStats={showSceneStats}
+          fixtureName={fixtureName}
+          parentRef={viewerRef}
+          onStatsChange={setRenderStats}
+          maxDpr={maxDpr}
+          preserveDrawingBuffer={preserveDrawingBuffer}
         />
       ) : isLinear ? (
         <ThreeLinearCanvas
+          key={`linear:${sceneRevisionKey}`}
           sceneModel={sceneModel}
           onSelectRange={picking.handleClick}
           onDoubleClickRange={picking.handleDoubleClick}
@@ -211,9 +250,16 @@ export default function ThreeDGeneViewer({
           onSelectionMove={handleSelectionMove}
           onSelectionEnd={handleSelectionEnd}
           isSelecting={selectionStart !== null}
+          showSceneStats={showSceneStats}
+          fixtureName={fixtureName}
+          parentRef={viewerRef}
+          onStatsChange={setRenderStats}
+          maxDpr={maxDpr}
+          preserveDrawingBuffer={preserveDrawingBuffer}
         />
       ) : (
         <ThreeCircularCanvas
+          key={`circular:${sceneRevisionKey}`}
           sceneModel={sceneModel}
           onSelectRange={picking.handleClick}
           onDoubleClickRange={picking.handleDoubleClick}
@@ -243,6 +289,8 @@ export default function ThreeDGeneViewer({
           fixtureName={fixtureName}
           parentRef={viewerRef}
           onStatsChange={setRenderStats}
+          maxDpr={maxDpr}
+          preserveDrawingBuffer={preserveDrawingBuffer}
         />
       )}
     </div>

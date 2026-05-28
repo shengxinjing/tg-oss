@@ -1,9 +1,22 @@
 import React from "react";
 import { Text } from "@react-three/drei";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
+import { linearMapStyle } from "./LinearAnnotationLayer";
 
 function getLabel(annotation) {
   return annotation.enzyme || annotation.name || annotation.id;
+}
+
+export function getLinearCutsiteLayout(index = 0) {
+  return {
+    y: 3.65 + (index % 3) * 0.52,
+    tickHeight: 0.72,
+    tickWidth: 0.055,
+    fontSize: 0.22,
+    labelOffsetY: 0.47
+  };
 }
 
 function Cutsite({
@@ -18,7 +31,7 @@ function Cutsite({
   onHoverEnd
 }) {
   const x = segment.startX + segment.width / 2 - modelWidth / 2;
-  const y = 1.34 + (index % 3) * 0.18;
+  const layout = getLinearCutsiteLayout(index);
   const userData = createUserData({
     kind: "cutsite",
     annotation,
@@ -27,36 +40,47 @@ function Cutsite({
   });
 
   return (
-    <group position={[x, y, 0.04]}>
+    <group position={[x, layout.y, 0.04]}>
       <mesh
         name={getLabel(annotation)}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(annotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(annotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(annotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(annotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(annotation, event.object.userData, event);
         }}
       >
-        <planeGeometry args={[0.035, 0.42]} />
-        <meshBasicMaterial color="#fb923c" />
+        <planeGeometry args={[layout.tickWidth, layout.tickHeight]} />
+        <meshBasicMaterial color={linearMapStyle.strokeColor} />
       </mesh>
       <Text
-        position={[0.05, 0.26, 0.02]}
-        color="#fed7aa"
-        fontSize={0.105}
+        position={[0.08, layout.labelOffsetY, 0.02]}
+        color={linearMapStyle.textColor}
+        fontSize={layout.fontSize}
         anchorX="left"
         anchorY="middle"
         whiteSpace="nowrap"

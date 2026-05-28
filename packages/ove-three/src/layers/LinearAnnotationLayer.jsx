@@ -1,6 +1,8 @@
 import React from "react";
 import { Text } from "@react-three/drei";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 
 const fallbackColors = {
   promoter: "#8b5cf6",
@@ -13,6 +15,13 @@ const fallbackColors = {
   misc_feature: "#f97316"
 };
 
+export const linearMapStyle = {
+  backgroundColor: "#0b1422",
+  strokeColor: "#dbeafe",
+  textColor: "#e5eefb",
+  inverseTextColor: "#0b1422"
+};
+
 function getColor(annotation) {
   return (
     annotation.color ||
@@ -22,22 +31,28 @@ function getColor(annotation) {
   );
 }
 
-function getY(annotationType, index) {
-  const yByType = {
-    feature: 0.52,
-    part: 0.78,
-    primer: 1.04,
-    orf: -0.62
+export function getLinearAnnotationLayout(annotationType, index) {
+  const layoutByType = {
+    feature: { y: 0.95, height: 0.46, fontSize: 0.28 },
+    part: { y: 1.72, height: 0.3, fontSize: 0.23 },
+    primer: { y: 2.45, height: 0.28, fontSize: 0.22 },
+    orf: { y: -1.18, height: 0.24, fontSize: 0.18 }
   };
-  return (yByType[annotationType] || 0.52) + (index % 3) * 0.18;
-}
-
-function getHeight(annotationType) {
-  return annotationType === "primer" || annotationType === "orf" ? 0.12 : 0.16;
+  const layout = layoutByType[annotationType] || layoutByType.feature;
+  return {
+    ...layout,
+    y: layout.y + (index % 3) * 0.48
+  };
 }
 
 function getLabel(annotation) {
   return annotation.name || annotation.id;
+}
+
+function getAnnotationTextColor(annotation) {
+  return ["operator", "origin", "CDS", "tag"].includes(annotation.type)
+    ? linearMapStyle.inverseTextColor
+    : linearMapStyle.textColor;
 }
 
 function LinearAnnotation({
@@ -54,7 +69,7 @@ function LinearAnnotation({
   hoveredAnnotationId
 }) {
   const x = segment.startX + segment.width / 2 - modelWidth / 2;
-  const y = getY(annotation.annotationType, index);
+  const layout = getLinearAnnotationLayout(annotation.annotationType, index);
   const color = getColor(annotation);
   const selected = selectedAnnotationId === annotation.id;
   const hovered = hoveredAnnotationId === annotation.id;
@@ -69,45 +84,57 @@ function LinearAnnotation({
   });
 
   return (
-    <group position={[x, y, 0.02]}>
+    <group position={[x, layout.y, 0.02]}>
+      <mesh position={[0, 0, -0.012]}>
+        <planeGeometry
+          args={[Math.max(segment.width, 0.12) + 0.08, layout.height + 0.08]}
+        />
+        <meshBasicMaterial color={linearMapStyle.strokeColor} />
+      </mesh>
       <mesh
         name={getLabel(annotation)}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(annotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(annotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(annotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(annotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(annotation, event.object.userData, event);
         }}
       >
-        <planeGeometry
-          args={[
-            Math.max(segment.width, 0.08),
-            getHeight(annotation.annotationType)
-          ]}
-        />
+        <planeGeometry args={[Math.max(segment.width, 0.12), layout.height]} />
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={selected || hovered ? 0.98 : 0.82}
+          opacity={selected || hovered ? 1 : 0.96}
         />
       </mesh>
       <Text
         position={[-segment.width / 2 + 0.04, 0, 0.03]}
-        color="#f8fafc"
-        fontSize={0.105}
+        color={getAnnotationTextColor(annotation)}
+        fontSize={layout.fontSize}
         anchorX="left"
         anchorY="middle"
         maxWidth={Math.max(segment.width - 0.08, 0.1)}

@@ -1,5 +1,5 @@
-const DEFAULT_CONTENT_HEIGHT = 3.3;
-const HORIZONTAL_PADDING_RATIO = 0.34;
+const DEFAULT_CONTENT_HEIGHT = 8.2;
+const HORIZONTAL_PADDING_RATIO = 0.12;
 const VERTICAL_PADDING_RATIO = 0.3;
 
 export default function getLinearCameraZoom({

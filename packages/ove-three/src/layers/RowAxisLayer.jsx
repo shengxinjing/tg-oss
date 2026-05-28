@@ -1,6 +1,7 @@
 import React from "react";
 import { Line } from "@react-three/drei";
 import SafeText from "./SafeText";
+import rowMapStyle from "./rowMapStyle";
 
 function getRowY(row, sceneModel) {
   const top = ((sceneModel.visibleRows.length - 1) * sceneModel.rowHeight) / 2;
@@ -22,13 +23,13 @@ export default function RowAxisLayer({ sceneModel }) {
                 [0, y, -0.04],
                 [row.length * sceneModel.baseWidth, y, -0.04]
               ]}
-              color="#334155"
+              color={rowMapStyle.rowGuideColor}
               lineWidth={1}
             />
             <SafeText
               position={[-0.34, y + 0.16, 0.02]}
-              color="#93a4ba"
-              fontSize={0.1}
+              color={rowMapStyle.rowLabelColor}
+              fontSize={0.08}
               anchorX="right"
               anchorY="middle"
             >
@@ -40,12 +41,12 @@ export default function RowAxisLayer({ sceneModel }) {
                 <group key={tick.position} position={[x, y + 0.24, 0.01]}>
                   <mesh>
                     <planeGeometry args={[0.01, 0.12]} />
-                    <meshBasicMaterial color="#64748b" />
+                    <meshBasicMaterial color={rowMapStyle.tickColor} />
                   </mesh>
                   <SafeText
                     position={[0, 0.13, 0.01]}
-                    color="#9fb0c7"
-                    fontSize={0.075}
+                    color={rowMapStyle.tickLabelColor}
+                    fontSize={0.065}
                     anchorX="center"
                     anchorY="middle"
                   >
@@ -62,7 +63,7 @@ export default function RowAxisLayer({ sceneModel }) {
           [0, -3.9, -0.05],
           [rowWidth, -3.9, -0.05]
         ]}
-        color="#1e293b"
+        color={rowMapStyle.rowGuideColor}
         lineWidth={1}
       />
     </group>

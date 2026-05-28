@@ -1,40 +1,10 @@
 import React from "react";
 import SafeText from "./SafeText";
-
-const baseColors = {
-  A: "#ef4444",
-  T: "#3b82f6",
-  G: "#22c55e",
-  C: "#f59e0b",
-  U: "#8b5cf6"
-};
+import rowMapStyle from "./rowMapStyle";
 
 function getRowY(row, sceneModel) {
   const top = ((sceneModel.visibleRows.length - 1) * sceneModel.rowHeight) / 2;
   return top - row.relativeIndex * sceneModel.rowHeight;
-}
-
-function BaseSwatches({ row, sceneModel, y }) {
-  return row.sequence
-    .toUpperCase()
-    .split("")
-    .map((base, index) => (
-      <mesh
-        key={`${row.rowIndex}-${index}-${base}`}
-        position={[
-          index * sceneModel.baseWidth + sceneModel.baseWidth / 2,
-          y - 0.02,
-          -0.02
-        ]}
-      >
-        <planeGeometry args={[sceneModel.baseWidth * 0.82, 0.2]} />
-        <meshBasicMaterial
-          color={baseColors[base] || "#475569"}
-          transparent
-          opacity={0.62}
-        />
-      </mesh>
-    ));
 }
 
 export default function RowSequenceLayer({ sceneModel }) {
@@ -45,11 +15,24 @@ export default function RowSequenceLayer({ sceneModel }) {
 
         return (
           <group key={row.rowIndex}>
-            <BaseSwatches row={row} sceneModel={sceneModel} y={y} />
+            <mesh
+              position={[
+                (row.length * sceneModel.baseWidth) / 2,
+                y - 0.08,
+                -0.03
+              ]}
+            >
+              <planeGeometry args={[row.length * sceneModel.baseWidth, 0.44]} />
+              <meshBasicMaterial
+                color={rowMapStyle.baseGuideColor}
+                transparent
+                opacity={rowMapStyle.baseGuideOpacity}
+              />
+            </mesh>
             <SafeText
               position={[0, y + 0.04, 0.03]}
-              color="#f8fafc"
-              fontSize={0.14}
+              color={rowMapStyle.forwardTextColor}
+              fontSize={0.1}
               anchorX="left"
               anchorY="middle"
               whiteSpace="nowrap"
@@ -58,8 +41,8 @@ export default function RowSequenceLayer({ sceneModel }) {
             </SafeText>
             <SafeText
               position={[0, y - 0.2, 0.03]}
-              color="#93a4ba"
-              fontSize={0.12}
+              color={rowMapStyle.complementTextColor}
+              fontSize={0.08}
               anchorX="left"
               anchorY="middle"
               whiteSpace="nowrap"

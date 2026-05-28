@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 function getUserData(event, userData) {
   return userData || event?.object?.userData || {};
@@ -54,6 +54,7 @@ export default function useRaycastPicking({
   const [lastPick, setLastPick] = useState(null);
   const [lastLatencyMs, setLastLatencyMs] = useState(null);
   const [pickRay, setPickRay] = useState(null);
+  const lastTargetContextMenuAtRef = useRef(0);
 
   const handleHover = useCallback((annotation, userData, event) => {
     const resolvedUserData = getUserData(event, userData);
@@ -102,6 +103,7 @@ export default function useRaycastPicking({
   const handleContextMenu = useCallback(
     (annotation, userData, event) => {
       preventContextMenu(event);
+      lastTargetContextMenuAtRef.current = performance.now();
       const resolvedUserData = getUserData(event, userData);
       setLastPick(resolvedUserData);
       setLastLatencyMs(getLatencyMs(event));
@@ -122,6 +124,9 @@ export default function useRaycastPicking({
   const handleBackgroundContextMenu = useCallback(
     event => {
       preventContextMenu(event);
+      if (performance.now() - lastTargetContextMenuAtRef.current < 120) {
+        return;
+      }
       const backgroundUserData = { kind: "background" };
       setHoveredId(null);
       setLastPick(backgroundUserData);
@@ -138,6 +143,14 @@ export default function useRaycastPicking({
     [onBackgroundContextMenu]
   );
 
+  const resetPicking = useCallback(() => {
+    setHoveredId(null);
+    setSelectedId(null);
+    setLastPick(null);
+    setLastLatencyMs(null);
+    setPickRay(null);
+  }, []);
+
   return {
     hoveredId,
     selectedId,
@@ -149,6 +162,7 @@ export default function useRaycastPicking({
     handleClick,
     handleDoubleClick,
     handleContextMenu,
-    handleBackgroundContextMenu
+    handleBackgroundContextMenu,
+    resetPicking
   };
 }

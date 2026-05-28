@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef
+} from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import RowDebugOverlay from "../debug/RowDebugOverlay";
 import CaretLayer from "../layers/CaretLayer";
@@ -9,10 +15,15 @@ import RowSequenceLayer from "../layers/RowSequenceLayer";
 import RowTranslationLayer from "../layers/RowTranslationLayer";
 import SearchLayer from "../layers/SearchLayer";
 import SelectionLayer from "../layers/SelectionLayer";
+import rowMapStyle from "../layers/rowMapStyle";
+import PerfOverlay from "../perf/PerfOverlay";
+import NativeContextMenuPicker from "../interaction/NativeContextMenuPicker";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointToVisibleRowPosition from "../interaction/mapPointToVisibleRowPosition";
 import buildRowSceneModel from "../model/buildRowSceneModel";
-import getRowCameraZoom from "./getRowCameraZoom";
+import getCanvasDpr from "./getCanvasDpr";
+import getRowCameraZoom, { getRowCameraTargetY } from "./getRowCameraZoom";
+import getNextVisibleStartRow from "./getNextVisibleStartRow";
 import { getRowIndexForPosition } from "../model/buildRowSceneModel";
 
 function RowPointerHitArea({
@@ -23,7 +34,6 @@ function RowPointerHitArea({
   onSelectionStart,
   onSelectionMove,
   onSelectionEnd,
-  onBackgroundContextMenu,
   isSelecting
 }) {
   const rowWidth = sceneModel.basesPerRow * sceneModel.baseWidth;
@@ -74,11 +84,6 @@ function RowPointerHitArea({
         event.stopPropagation();
         onCaretPositionChange?.(mapped.position);
       }}
-      onContextMenu={event => {
-        event.stopPropagation();
-        event.nativeEvent?.preventDefault?.();
-        onBackgroundContextMenu?.({ originalEvent: event });
-      }}
     >
       <planeGeometry args={[rowWidth, viewHeight]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -91,18 +96,29 @@ function RowCameraFrame({ sceneModel, rowGroupX }) {
   const rowWidth = sceneModel.basesPerRow * sceneModel.baseWidth;
 
   useLayoutEffect(() => {
-    camera.position.set(rowGroupX + rowWidth / 2, 0, 20);
-    camera.zoom = getRowCameraZoom({
+    const zoom = getRowCameraZoom({
       canvasWidth: size.width,
       canvasHeight: size.height,
       rowWidth,
       rowHeight: sceneModel.rowHeight
     });
+    camera.position.set(
+      rowGroupX + rowWidth / 2,
+      getRowCameraTargetY({
+        canvasHeight: size.height,
+        zoom,
+        visibleRowCount: sceneModel.visibleRows.length,
+        rowHeight: sceneModel.rowHeight
+      }),
+      20
+    );
+    camera.zoom = zoom;
     camera.updateProjectionMatrix();
   }, [
     camera,
     rowGroupX,
     rowWidth,
+    sceneModel.visibleRows.length,
     sceneModel.rowHeight,
     size.height,
     size.width
@@ -129,15 +145,24 @@ function RowScene({
   onSelectionStart,
   onSelectionMove,
   onSelectionEnd,
-  isSelecting
+  isSelecting,
+  showSceneStats,
+  fixtureName,
+  parentRef,
+  onStatsChange
 }) {
   const rowWidth = sceneModel.basesPerRow * sceneModel.baseWidth;
   const rowGroupX = -rowWidth / 2 + 0.45;
 
   return (
     <>
-      <color attach="background" args={["#07111f"]} />
+      <color attach="background" args={[rowMapStyle.backgroundColor]} />
       <ambientLight intensity={1} />
+      <NativeContextMenuPicker
+        sceneModel={sceneModel}
+        onContextMenuRange={onContextMenuRange}
+        onBackgroundContextMenu={onBackgroundContextMenu}
+      />
       <RowCameraFrame sceneModel={sceneModel} rowGroupX={rowGroupX} />
       <group position={[rowGroupX, 0, 0]}>
         <RowPointerHitArea
@@ -148,7 +173,6 @@ function RowScene({
           onSelectionStart={onSelectionStart}
           onSelectionMove={onSelectionMove}
           onSelectionEnd={onSelectionEnd}
-          onBackgroundContextMenu={onBackgroundContextMenu}
           isSelecting={isSelecting}
         />
         <SearchLayer searchRanges={searchRanges} sceneModel={sceneModel} />
@@ -191,6 +215,13 @@ function RowScene({
           onHoverEnd={onHoverEnd}
         />
       </group>
+      {showSceneStats && (
+        <PerfOverlay
+          fixtureName={fixtureName}
+          parentRef={parentRef}
+          onStatsChange={onStatsChange}
+        />
+      )}
     </>
   );
 }
@@ -220,9 +251,16 @@ export default function ThreeRowCanvas({
   onSelectionStart,
   onSelectionMove,
   onSelectionEnd,
-  isSelecting = false
+  isSelecting = false,
+  showSceneStats = false,
+  fixtureName,
+  parentRef,
+  onStatsChange,
+  maxDpr = 2,
+  preserveDrawingBuffer = false
 }) {
   const rowHeightPx = 72;
+  const lastAutoScrollTargetRef = useRef(null);
   const sceneModel = useMemo(
     () =>
       buildRowSceneModel(sequenceData, {
@@ -268,14 +306,13 @@ export default function ThreeRowCanvas({
     event => {
       if (!sceneModel.totalRows) return;
       event.preventDefault();
-      const rowDelta =
-        Math.sign(event.deltaY) *
-        Math.max(1, Math.round(Math.abs(event.deltaY) / rowHeightPx));
-      const maxStartRow = Math.max(0, sceneModel.totalRows - visibleRowCount);
-      const nextStartRow = Math.min(
-        Math.max(visibleStartRow + rowDelta, 0),
-        maxStartRow
-      );
+      const nextStartRow = getNextVisibleStartRow({
+        currentStartRow: visibleStartRow,
+        deltaY: event.deltaY,
+        rowHeightPx,
+        totalRows: sceneModel.totalRows,
+        visibleRowCount
+      });
       if (nextStartRow !== visibleStartRow) {
         onVisibleStartRowChange?.(nextStartRow);
       }
@@ -300,6 +337,10 @@ export default function ThreeRowCanvas({
       selectionPosition ??
       (caretPosition > -1 ? caretPosition : -1);
 
+    if (targetPosition < 0) return;
+    if (lastAutoScrollTargetRef.current === targetPosition) return;
+
+    lastAutoScrollTargetRef.current = targetPosition;
     scrollToPosition(targetPosition);
   }, [caretPosition, scrollToPosition, searchRanges, selectionRange?.start]);
 
@@ -312,10 +353,15 @@ export default function ThreeRowCanvas({
       <RowDebugOverlay sceneModel={sceneModel} />
       <div className="ove-three-row-canvas-sticky">
         <Canvas
+          data-testid="ove-three-webgl-canvas"
           orthographic
           camera={{ position: [0, 0, 20], zoom: 92, near: 0.1, far: 100 }}
-          dpr={[1, 2]}
-          gl={{ antialias: true, powerPreference: "high-performance" }}
+          dpr={getCanvasDpr(maxDpr)}
+          gl={{
+            antialias: true,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer
+          }}
         >
           <RowScene
             sceneModel={sceneModel}
@@ -336,6 +382,10 @@ export default function ThreeRowCanvas({
             onSelectionMove={onSelectionMove}
             onSelectionEnd={onSelectionEnd}
             isSelecting={isSelecting}
+            showSceneStats={showSceneStats}
+            fixtureName={fixtureName}
+            parentRef={parentRef}
+            onStatsChange={onStatsChange}
           />
         </Canvas>
       </div>

@@ -51,4 +51,30 @@ describe("buildCircularLabels", () => {
     assert(result.visible.some(label => label.annotationId === "selected"));
     assert(result.hidden.some(label => label.annotationId === "first"));
   });
+
+  it("reduces dense circular label sets before rendering", () => {
+    const sceneModel = {
+      annotations: Array.from({ length: 180 }, (_, index) => ({
+        id: `label-${index}`,
+        name: `Label ${index}`,
+        annotationType: index % 3 === 0 ? "cutsite" : "feature",
+        start: index,
+        end: index + 1,
+        segments: [
+          {
+            start: index,
+            end: index + 1,
+            startAngle: index * 0.03,
+            totalAngle: 0.01
+          }
+        ]
+      }))
+    };
+
+    const result = buildCircularLabels({ sceneModel });
+
+    assert(result.visible.length <= 72);
+    assert(!result.visible.some(label => label.annotationType === "cutsite"));
+    assert(result.visible.every(label => label.fontSizeWorld < 0.115));
+  });
 });

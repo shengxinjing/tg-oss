@@ -28,8 +28,23 @@
       },
       "configurations": {
         "ci": {
+          "commands": [
+            "cd packages/ove-three && yarn vite --host 127.0.0.1 --port 5174 --strictPort"
+          ],
           "readyWhen": "ready in"
         }
+      }
+    },
+    "e2e": {
+      "executor": "@nx/cypress:cypress",
+      "options": {
+        "browser": "electron",
+        "cypressConfig": "packages/ove-three/cypress.config.js",
+        "devServerTarget": "ove-three:start:ci",
+        "parallel": false,
+        "record": false,
+        "testingType": "e2e",
+        "video": false
       }
     },
     "lint": {},

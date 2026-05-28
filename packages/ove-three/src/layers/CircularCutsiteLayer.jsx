@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { Billboard, Text } from "@react-three/drei";
 import createTickGeometry from "../geometry/createTickGeometry";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 
 function getCutsites(sceneModel = {}) {
   return (sceneModel.annotations || []).filter(
@@ -18,9 +20,21 @@ function getLabel(annotation) {
   return annotation.enzyme || annotation.name || annotation.id;
 }
 
+export function getCutsiteLabelStyle({ cutsiteCount = 0, index = 0 } = {}) {
+  if (cutsiteCount > 160) {
+    return { fontSize: 0.052, showLabel: index % 4 === 0 };
+  }
+  if (cutsiteCount > 90) {
+    return { fontSize: 0.07, showLabel: index % 2 === 0 };
+  }
+  return { fontSize: 0.11, showLabel: true };
+}
+
 function CutsiteTick({
   annotation,
   segment,
+  index,
+  cutsiteCount,
   radius,
   onSelectRange,
   onDoubleClickRange,
@@ -43,6 +57,7 @@ function CutsiteTick({
   const x = Math.cos(angle - Math.PI / 2) * labelRadius;
   const z = Math.sin(angle - Math.PI / 2) * labelRadius;
   const color = annotation.color || "#fb923c";
+  const labelStyle = getCutsiteLabelStyle({ cutsiteCount, index });
   const userData = createUserData({
     kind: "cutsite",
     annotation,
@@ -58,19 +73,30 @@ function CutsiteTick({
         name={getLabel(annotation)}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(annotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(annotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(annotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(annotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(annotation, event.object.userData, event);
@@ -78,18 +104,20 @@ function CutsiteTick({
       >
         <meshBasicMaterial color={color} side={THREE.DoubleSide} />
       </mesh>
-      <Billboard position={[x, 0.16, z]}>
-        <Text
-          color="#fed7aa"
-          fontSize={0.11}
-          anchorX="center"
-          anchorY="middle"
-          outlineColor="#07111f"
-          outlineWidth={0.01}
-        >
-          {getLabel(annotation)}
-        </Text>
-      </Billboard>
+      {labelStyle.showLabel && (
+        <Billboard position={[x, 0.16, z]}>
+          <Text
+            color="#fed7aa"
+            fontSize={labelStyle.fontSize}
+            anchorX="center"
+            anchorY="middle"
+            outlineColor="#07111f"
+            outlineWidth={Math.min(0.01, labelStyle.fontSize * 0.09)}
+          >
+            {getLabel(annotation)}
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
@@ -107,12 +135,14 @@ export default function CircularCutsiteLayer({
 
   return (
     <group userData={{ kind: "cutsites" }}>
-      {cutsites.flatMap(annotation =>
+      {cutsites.flatMap((annotation, annotationIndex) =>
         annotation.segments.map((segment, segmentIndex) => (
           <CutsiteTick
             key={`${annotation.id}-${segment.start}-${segment.end}-${segmentIndex}`}
             annotation={annotation}
             segment={segment}
+            index={annotationIndex}
+            cutsiteCount={cutsites.length}
             radius={radius}
             onSelectRange={onSelectRange}
             onDoubleClickRange={onDoubleClickRange}

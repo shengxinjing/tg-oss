@@ -143,6 +143,14 @@ export const mediumCircular = {
       recognitionSite: "gaattc",
       start: 650,
       end: 655
+    },
+    {
+      id: "medium-hindiii",
+      name: "HindIII",
+      enzyme: "HindIII",
+      recognitionSite: "aagctt",
+      start: 230,
+      end: 235
     }
   ],
   orfs: [
@@ -238,6 +246,19 @@ export const hugeRow = {
     "Long linear sequence for RowView-style scrolling, line wrapping, and text density checks."
 };
 
+export const twoHundredKbRow = {
+  ...generateStressSequenceData({
+    name: "row_200k_fixture",
+    sequenceLength: 200000,
+    featureCount: 160,
+    primerCount: 160,
+    cutsiteCount: 320,
+    circular: false
+  }),
+  description:
+    "200k bp linear DNA for virtualized RowView stability, scroll-to-selection, and row spacing drift checks."
+};
+
 export const crossOriginCircular = {
   ...mediumCircular,
   name: "cross_origin_circular_fixture",
@@ -302,6 +323,7 @@ export const fixtureList = [
   mediumCircular,
   largeCircular,
   hugeRow,
+  twoHundredKbRow,
   crossOriginCircular,
   denseAnnotations,
   proteinLike

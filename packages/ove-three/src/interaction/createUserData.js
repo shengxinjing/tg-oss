@@ -1,10 +1,12 @@
+import getPickPriority from "./getPickPriority";
+
 export default function createUserData({
   kind,
   annotation = {},
   segment = {},
   extra = {}
 } = {}) {
-  return {
+  const userData = {
     pickable: true,
     kind,
     annotationId: annotation.id,
@@ -15,5 +17,10 @@ export default function createUserData({
     segmentStart: segment.start,
     segmentEnd: segment.end,
     ...extra
+  };
+
+  return {
+    ...userData,
+    pickPriority: getPickPriority(userData)
   };
 }

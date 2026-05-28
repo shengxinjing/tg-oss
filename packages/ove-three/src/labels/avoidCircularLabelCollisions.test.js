@@ -82,4 +82,20 @@ describe("circularLabel collision solver", () => {
     assert(result.hidden.length > 0);
     assert.equal(result.overlapCount, 0);
   });
+
+  it("caps visible labels after priority sorting", () => {
+    const labels = [
+      makeLabel("selected", 0, 0, { selected: true, priority: 0 }),
+      makeLabel("a", 120, 0, { priority: 1 }),
+      makeLabel("b", 240, 0, { priority: 1 })
+    ];
+
+    const result = avoidCircularLabelCollisions(labels, {
+      maxVisibleLabels: 2
+    });
+
+    assert.equal(result.visible.length, 2);
+    assert(result.visible.some(label => label.id === "selected"));
+    assert.equal(result.hidden.length, 1);
+  });
 });

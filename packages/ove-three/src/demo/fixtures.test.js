@@ -7,7 +7,8 @@ import {
   largeCircular,
   mediumCircular,
   proteinLike,
-  smallCircular
+  smallCircular,
+  twoHundredKbRow
 } from "./fixtures";
 import generateStressSequenceData from "../perf/generateStressSequenceData";
 
@@ -17,13 +18,14 @@ describe("ove-three demo fixtures", () => {
     assert.equal(mediumCircular.sequence.length, 2710);
     assert.equal(largeCircular.sequence.length, 12000);
     assert.equal(hugeRow.sequence.length, 50000);
+    assert.equal(twoHundredKbRow.sequence.length, 200000);
     assert.equal(crossOriginCircular.sequence.length, 2710);
     assert.equal(denseAnnotations.sequence.length, 10000);
     assert.equal(proteinLike.proteinSequence.length, 879);
   });
 
   it("documents why each fixture exists", () => {
-    assert.equal(fixtureList.length, 7);
+    assert.equal(fixtureList.length, 8);
     fixtureList.forEach(fixture => {
       assert.equal(typeof fixture.description, "string");
       assert(fixture.description.length > 20);
@@ -60,5 +62,10 @@ describe("ove-three demo fixtures", () => {
     assert.equal(stress.features.length, 12);
     assert.equal(stress.primers.length, 24);
     assert.equal(stress.cutsites.length, 48);
+  });
+
+  it("keeps the 200k row stress fixture linear", () => {
+    assert.equal(twoHundredKbRow.circular, false);
+    assert(twoHundredKbRow.features.length >= 100);
   });
 });

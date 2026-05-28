@@ -34,7 +34,7 @@ function CircularLabel({ label, showLabelBoxes }) {
       <Billboard position={label.position}>
         <Text
           color={label.selected || label.hovered ? "#ffffff" : label.color}
-          fontSize={0.115}
+          fontSize={label.fontSizeWorld || 0.115}
           anchorX="center"
           anchorY="middle"
           outlineColor="#07111f"

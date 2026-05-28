@@ -1,6 +1,9 @@
 import React from "react";
 import createUserData from "../interaction/createUserData";
+import isContextPointerButton from "../interaction/isContextPointerButton";
+import shouldHandlePick from "../interaction/shouldHandlePick";
 import SafeText from "./SafeText";
+import rowMapStyle from "./rowMapStyle";
 
 const fallbackColors = {
   promoter: "#8b5cf6",
@@ -46,6 +49,12 @@ function getEventAnnotation(annotation) {
   };
 }
 
+function getAnnotationTextColor(annotation) {
+  return ["operator", "origin", "CDS"].includes(annotation.type)
+    ? rowMapStyle.inverseTextColor
+    : rowMapStyle.featureTextColor;
+}
+
 function RowAnnotation({
   annotation,
   row,
@@ -76,39 +85,56 @@ function RowAnnotation({
 
   return (
     <group position={[annotation.x, y, 0.06]}>
+      <mesh position={[0, 0, -0.012]}>
+        <planeGeometry
+          args={[Math.max(annotation.width, 0.04) + 0.025, 0.165]}
+        />
+        <meshBasicMaterial color={rowMapStyle.featureStrokeColor} />
+      </mesh>
       <mesh
         name={annotation.label}
         userData={userData}
         onPointerOver={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onHoverRange?.(eventAnnotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
         onClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onSelectRange?.(eventAnnotation, event.object.userData, event);
         }}
         onDoubleClick={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           onDoubleClickRange?.(eventAnnotation, event.object.userData, event);
         }}
+        onPointerUp={event => {
+          if (!isContextPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+          event.nativeEvent?.preventDefault?.();
+          onContextMenuRange?.(eventAnnotation, event.object.userData, event);
+        }}
         onContextMenu={event => {
+          if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
           event.nativeEvent?.preventDefault?.();
           onContextMenuRange?.(eventAnnotation, event.object.userData, event);
         }}
       >
-        <planeGeometry args={[Math.max(annotation.width, 0.04), 0.12]} />
+        <planeGeometry args={[Math.max(annotation.width, 0.04), 0.14]} />
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={selected || hovered ? 0.98 : 0.84}
+          opacity={selected || hovered ? 1 : 0.95}
         />
       </mesh>
       <SafeText
         position={[-annotation.width / 2 + 0.025, 0.006, 0.03]}
-        color="#f8fafc"
-        fontSize={0.085}
+        color={getAnnotationTextColor(annotation)}
+        fontSize={0.078}
         anchorX="left"
         anchorY="middle"
         maxWidth={Math.max(annotation.width - 0.05, 0.05)}
@@ -128,14 +154,18 @@ function RowAnnotation({
           rotation={[0, 0, annotation.direction === "reverse" ? Math.PI : 0]}
         >
           <coneGeometry args={[0.045, 0.09, 3]} />
-          <meshBasicMaterial color="#f8fafc" transparent opacity={0.92} />
+          <meshBasicMaterial
+            color={getAnnotationTextColor(annotation)}
+            transparent
+            opacity={0.92}
+          />
         </mesh>
       )}
       {annotation.annotationType === "primer" && annotation.bases && (
         <SafeText
           position={[-annotation.width / 2 + 0.025, -0.1, 0.03]}
-          color="#bae6fd"
-          fontSize={0.065}
+          color={rowMapStyle.primerBasesColor}
+          fontSize={0.055}
           anchorX="left"
           anchorY="middle"
           maxWidth={Math.max(annotation.width - 0.05, 0.05)}

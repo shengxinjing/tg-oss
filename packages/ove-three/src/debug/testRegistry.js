@@ -48,14 +48,14 @@ function getRenderableAnnotations(sceneModel = {}) {
 
 function getLinearY(annotationType, index = 0) {
   const baseYByType = {
-    feature: 0.52,
-    part: 0.78,
-    primer: 1.04,
-    cutsite: 1.34,
-    orf: -0.62
+    feature: 0.95,
+    part: 1.72,
+    primer: 2.45,
+    cutsite: 3.65,
+    orf: -1.18
   };
 
-  return (baseYByType[annotationType] || 0.52) + (index % 3) * 0.18;
+  return (baseYByType[annotationType] || 0.95) + (index % 3) * 0.48;
 }
 
 function getLinearPoint(sceneModel, annotation, segment, index) {

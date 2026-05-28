@@ -1,14 +1,18 @@
 import React, { Suspense, useEffect, useLayoutEffect } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Text } from "@react-three/drei";
 import CaretLayer from "../layers/CaretLayer";
 import LinearAnnotationLayer from "../layers/LinearAnnotationLayer";
+import { linearMapStyle } from "../layers/LinearAnnotationLayer";
 import LinearCutsiteLayer from "../layers/LinearCutsiteLayer";
 import LinearSequenceLayer from "../layers/LinearSequenceLayer";
 import SelectionLayer from "../layers/SelectionLayer";
+import PerfOverlay from "../perf/PerfOverlay";
+import NativeContextMenuPicker from "../interaction/NativeContextMenuPicker";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointerToLinearPosition from "../interaction/mapPointerToLinearPosition";
+import getCanvasDpr from "./getCanvasDpr";
 import getLinearCameraZoom from "./getLinearCameraZoom";
 import {
   buildAnnotationRegistryEntries,
@@ -78,7 +82,7 @@ function LinearCameraFrame({ sceneModel }) {
   const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
 
   useLayoutEffect(() => {
-    camera.position.set(0, 0.42, 20);
+    camera.position.set(0, 1.55, 20);
     camera.zoom = getLinearCameraZoom({
       canvasWidth: size.width,
       canvasHeight: size.height,
@@ -120,7 +124,7 @@ function LinearPointerHitArea({
 
   return (
     <mesh
-      position={[0, 0.45, -0.08]}
+      position={[0, 1.55, -0.08]}
       onPointerMove={event => {
         const mapped = mapLinearEvent(event, { sceneModel, mode });
         if (isSelecting && mapped) {
@@ -145,7 +149,7 @@ function LinearPointerHitArea({
         if (mapped) onCaretPositionChange?.(mapped.position);
       }}
     >
-      <planeGeometry args={[modelWidth, 3.4]} />
+      <planeGeometry args={[modelWidth, 8.2]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>
   );
@@ -153,17 +157,31 @@ function LinearPointerHitArea({
 
 function AxisTicks({ sceneModel }) {
   const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
+  const axisY = -0.56;
 
   return (
     <group userData={{ kind: "linear-axis" }}>
+      <mesh position={[0, axisY - 0.17, 0.025]}>
+        <planeGeometry args={[modelWidth, 0.025]} />
+        <meshBasicMaterial color={linearMapStyle.strokeColor} />
+      </mesh>
       {sceneModel.axisTicks.map(tick => {
         const x = tick.position * sceneModel.baseWidth - modelWidth / 2;
         return (
-          <group key={tick.position} position={[x, 0.18, 0.03]}>
+          <group key={tick.position} position={[x, axisY, 0.03]}>
             <mesh>
-              <planeGeometry args={[0.018, 0.16]} />
-              <meshBasicMaterial color="#94a3b8" />
+              <planeGeometry args={[0.018, 0.34]} />
+              <meshBasicMaterial color={linearMapStyle.strokeColor} />
             </mesh>
+            <Text
+              position={[0.04, -0.34, 0.02]}
+              color={linearMapStyle.textColor}
+              fontSize={0.2}
+              anchorX="left"
+              anchorY="middle"
+            >
+              {tick.label}
+            </Text>
           </group>
         );
       })}
@@ -176,6 +194,7 @@ function LinearScene({
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
+  onBackgroundContextMenu,
   onHoverRange,
   onHoverEnd,
   showPointerPosition,
@@ -189,12 +208,21 @@ function LinearScene({
   onSelectionStart,
   onSelectionMove,
   onSelectionEnd,
-  isSelecting
+  isSelecting,
+  showSceneStats,
+  fixtureName,
+  parentRef,
+  onStatsChange
 }) {
   return (
     <>
-      <color attach="background" args={["#07111f"]} />
+      <color attach="background" args={[linearMapStyle.backgroundColor]} />
       <ambientLight intensity={1} />
+      <NativeContextMenuPicker
+        sceneModel={sceneModel}
+        onContextMenuRange={onContextMenuRange}
+        onBackgroundContextMenu={onBackgroundContextMenu}
+      />
       <LinearCameraFrame sceneModel={sceneModel} />
       <LinearPointerHitArea
         sceneModel={sceneModel}
@@ -241,8 +269,15 @@ function LinearScene({
         enableRotate={false}
         enableDamping
         makeDefault
-        target={[0, 0.42, 0]}
+        target={[0, 1.55, 0]}
       />
+      {showSceneStats && (
+        <PerfOverlay
+          fixtureName={fixtureName}
+          parentRef={parentRef}
+          onStatsChange={onStatsChange}
+        />
+      )}
     </>
   );
 }
@@ -266,15 +301,25 @@ export default function ThreeLinearCanvas({
   onSelectionStart,
   onSelectionMove,
   onSelectionEnd,
-  isSelecting = false
+  isSelecting = false,
+  showSceneStats = false,
+  fixtureName,
+  parentRef,
+  onStatsChange,
+  maxDpr = 2,
+  preserveDrawingBuffer = false
 }) {
   return (
     <Canvas
+      data-testid="ove-three-webgl-canvas"
       orthographic
       camera={{ position: [0, 0.42, 20], zoom: 10, near: 0.1, far: 100 }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-      onContextMenu={onBackgroundContextMenu}
+      dpr={getCanvasDpr(maxDpr)}
+      gl={{
+        antialias: true,
+        powerPreference: "high-performance",
+        preserveDrawingBuffer
+      }}
     >
       <TestRegistryPublisher
         sceneModel={sceneModel}
@@ -287,6 +332,7 @@ export default function ThreeLinearCanvas({
           onSelectRange={onSelectRange}
           onDoubleClickRange={onDoubleClickRange}
           onContextMenuRange={onContextMenuRange}
+          onBackgroundContextMenu={onBackgroundContextMenu}
           onHoverRange={onHoverRange}
           onHoverEnd={onHoverEnd}
           showPointerPosition={showPointerPosition}
@@ -301,6 +347,10 @@ export default function ThreeLinearCanvas({
           onSelectionMove={onSelectionMove}
           onSelectionEnd={onSelectionEnd}
           isSelecting={isSelecting}
+          showSceneStats={showSceneStats}
+          fixtureName={fixtureName}
+          parentRef={parentRef}
+          onStatsChange={onStatsChange}
         />
       </Suspense>
     </Canvas>

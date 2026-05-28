@@ -33,7 +33,10 @@ function countOverlaps(labels) {
   return overlapCount;
 }
 
-export default function avoidCircularLabelCollisions(labels = []) {
+export default function avoidCircularLabelCollisions(
+  labels = [],
+  { maxVisibleLabels = Infinity } = {}
+) {
   const orderedLabels = labels
     .map((label, index) => ({ label, index, priority: getPriority(label) }))
     .sort((a, b) => b.priority - a.priority || a.index - b.index);
@@ -56,13 +59,19 @@ export default function avoidCircularLabelCollisions(labels = []) {
     visibleBoxes.push(box);
   });
 
-  visibleItems.sort((a, b) => a.index - b.index);
-  hidden.sort((a, b) => labels.indexOf(a) - labels.indexOf(b));
-  const visible = visibleItems.map(item => item.label);
+  const cappedVisibleItems = visibleItems.slice(0, maxVisibleLabels);
+  const cappedHidden = [
+    ...hidden,
+    ...visibleItems.slice(maxVisibleLabels).map(item => item.label)
+  ];
+
+  cappedVisibleItems.sort((a, b) => a.index - b.index);
+  cappedHidden.sort((a, b) => labels.indexOf(a) - labels.indexOf(b));
+  const visible = cappedVisibleItems.map(item => item.label);
 
   return {
     visible,
-    hidden,
+    hidden: cappedHidden,
     overlapCount: countOverlaps(visible)
   };
 }
