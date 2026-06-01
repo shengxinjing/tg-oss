@@ -42,13 +42,26 @@ function getSceneRevision() {
 }
 
 function waitForRegistry() {
-  return cy.window().should(win => {
-    expect(win.Cypress.oveThreeTestRegistry).to.have.property("annotations");
-    expect(win.Cypress.oveThreeNativeContextCanvas?.isConnected).to.eq(true);
+  return cy.window({ timeout: 10000 }).should(win => {
+    expect(win.Cypress?.oveThreeTestRegistry).to.have.property("annotations");
+  });
+}
+
+function waitForNativeContext() {
+  return cy.window({ timeout: 10000 }).should(win => {
+    expect(win.Cypress?.oveThreeNativeContextCanvas?.isConnected).to.eq(true);
     expect(
       win.Cypress.oveThreeNativeContextCanvas.getBoundingClientRect().width
     ).to.be.greaterThan(0);
     expect(win.Cypress.oveThreeNativeContextMenu).to.be.a("function");
+  });
+}
+
+function waitForSelectedAnnotation(annotationId) {
+  return cy.window({ timeout: 10000 }).should(win => {
+    expect(win.Cypress?.oveThreeTestRegistry?.selectedAnnotationId).to.equal(
+      annotationId
+    );
   });
 }
 
@@ -125,7 +138,12 @@ describe("ove-three demo", () => {
       getCanvas().click(entry.x, entry.y, { force: true });
     });
     cy.get('[data-testid="demo-last-event"]').contains("click lacI-promoter");
+    cy.get('[data-testid="demo-clear-selection"]').click();
+    cy.get('[data-testid="demo-selected-annotation-card"]').should("not.exist");
+    waitForRegistry();
+    waitForSelectedAnnotation(null);
 
+    waitForNativeContext();
     getCanvas().rightclick(8, 8, { force: true });
     cy.get('[data-testid="demo-last-event"]').contains(
       "right-click background"
@@ -134,6 +152,7 @@ describe("ove-three demo", () => {
 
   it("routes right-clicks to feature, primer, and cutsite targets", () => {
     waitForRegistry();
+    waitForNativeContext();
 
     [
       ["lacI promoter", "lacI-promoter"],
@@ -164,6 +183,178 @@ describe("ove-three demo", () => {
         `right-click ${expectedId}`
       );
     });
+  });
+
+  it("toggles biological layers from the demo panel", () => {
+    waitForRegistry();
+    cy.window().should(win => {
+      expect(
+        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
+      ).to.be.a("string");
+    });
+
+    cy.get('[data-testid="demo-layer-feature"]').uncheck();
+    cy.get('[data-testid="demo-last-event"]').contains("feature hidden");
+    waitForRegistry();
+    cy.window().should(win => {
+      expect(
+        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
+      ).to.equal(undefined);
+    });
+
+    cy.get('[data-testid="demo-layer-feature"]').check();
+    cy.get('[data-testid="demo-last-event"]').contains("feature shown");
+    waitForRegistry();
+    cy.window().should(win => {
+      expect(
+        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
+      ).to.be.a("string");
+    });
+  });
+
+  it("keeps the annotation navigator in sync with layer visibility", () => {
+    cy.get('[data-testid="demo-annotation-medium-primer-1"]').should("exist");
+
+    cy.get('[data-testid="demo-layer-primer"]').uncheck();
+    cy.get('[data-testid="demo-last-event"]').contains("primer hidden");
+    cy.get('[data-testid="demo-annotation-medium-primer-1"]').should(
+      "not.exist"
+    );
+
+    cy.get('[data-testid="demo-layer-primer"]').check();
+    cy.get('[data-testid="demo-last-event"]').contains("primer shown");
+    cy.get('[data-testid="demo-annotation-medium-primer-1"]').should("exist");
+  });
+
+  it("focuses a feature from the side panel and scrolls Row view to it", () => {
+    cy.get('[data-testid="demo-view-select"]').select("Row");
+
+    cy.get('[data-testid="demo-annotation-ori"]').click();
+    cy.get('[data-testid="demo-last-event"]').contains("focus ori");
+    cy.get('[data-testid="demo-selected-annotation"]').contains("ori");
+    cy.get('[data-testid="ove-three-row-debug"]').should($debug => {
+      const startRow = Number($debug.attr("data-visible-start-row"));
+      const endRow = Number($debug.attr("data-visible-end-row"));
+      expect(startRow).to.be.at.most(22);
+      expect(endRow).to.be.at.least(22);
+    });
+    assertCanvasIsPainted();
+  });
+
+  it("keeps annotation focus when switching between view types", () => {
+    cy.get('[data-testid="demo-annotation-ori"]').click();
+    cy.get('[data-testid="demo-last-event"]').contains("focus ori");
+    waitForRegistry();
+    waitForSelectedAnnotation("ori");
+
+    cy.get('[data-testid="demo-view-select"]').select("Linear");
+    waitForRegistry();
+    waitForSelectedAnnotation("ori");
+
+    cy.get('[data-testid="demo-view-select"]').select("Row");
+    cy.get('[data-testid="ove-three-row-debug"]').should($debug => {
+      const startRow = Number($debug.attr("data-visible-start-row"));
+      const endRow = Number($debug.attr("data-visible-end-row"));
+      expect(startRow).to.be.at.most(22);
+      expect(endRow).to.be.at.least(22);
+    });
+    waitForRegistry();
+    waitForSelectedAnnotation("ori");
+    assertCanvasIsPainted();
+  });
+
+  it("focuses primer and cutsite annotations from the side panel", () => {
+    waitForRegistry();
+
+    cy.get('[data-testid="demo-annotation-medium-primer-1"]').click();
+    cy.get('[data-testid="demo-last-event"]').contains("focus medium-primer-1");
+    cy.get('[data-testid="demo-selected-annotation"]').contains(
+      "Example Primer 1"
+    );
+    waitForSelectedAnnotation("medium-primer-1");
+
+    cy.get('[data-testid="demo-annotation-medium-hindiii"]').click();
+    cy.get('[data-testid="demo-last-event"]').contains("focus medium-hindiii");
+    cy.get('[data-testid="demo-selected-annotation"]').contains("HindIII");
+    waitForSelectedAnnotation("medium-hindiii");
+  });
+
+  it("filters annotations and clears focused annotation details", () => {
+    cy.get('[data-testid="demo-annotation-search"]').type("gfp");
+
+    cy.get('[data-testid="demo-annotation-gfp"]').should("exist");
+    cy.get('[data-testid="demo-annotation-laci-promoter"]').should("not.exist");
+
+    cy.get('[data-testid="demo-annotation-gfp"]').click();
+    cy.get('[data-testid="demo-selected-annotation-card"]').contains("GFP");
+    cy.get('[data-testid="demo-selected-annotation-type"]').contains("feature");
+    cy.get('[data-testid="demo-selected-annotation-length"]').contains(
+      "720 bp"
+    );
+
+    cy.get('[data-testid="demo-selected-focus"]').click();
+    cy.get('[data-testid="demo-last-event"]').contains("focus gfp");
+
+    cy.get('[data-testid="demo-clear-selection"]').click();
+    cy.get('[data-testid="demo-selected-annotation-card"]').should("not.exist");
+    cy.get('[data-testid="demo-last-event"]').contains("selection cleared");
+  });
+
+  it("steps through filtered annotations and resets annotation search", () => {
+    cy.get('[data-testid="demo-annotation-search"]').type("primer");
+    cy.get('[data-testid="demo-annotation-result-count"]').contains(
+      "2 results"
+    );
+
+    cy.get('[data-testid="demo-prev-annotation"]').click();
+    cy.get('[data-testid="demo-selected-annotation"]').contains(
+      "Reverse Primer"
+    );
+    cy.get('[data-testid="demo-last-event"]').contains("focus medium-primer-2");
+
+    cy.get('[data-testid="demo-next-annotation"]').click();
+    cy.get('[data-testid="demo-selected-annotation"]').contains(
+      "Example Primer 1"
+    );
+    cy.get('[data-testid="demo-last-event"]').contains("focus medium-primer-1");
+
+    cy.get('[data-testid="demo-next-annotation"]').click();
+    cy.get('[data-testid="demo-selected-annotation"]').contains(
+      "Reverse Primer"
+    );
+    cy.get('[data-testid="demo-last-event"]').contains("focus medium-primer-2");
+
+    cy.get('[data-testid="demo-prev-annotation"]').click();
+    cy.get('[data-testid="demo-selected-annotation"]').contains(
+      "Example Primer 1"
+    );
+
+    cy.get('[data-testid="demo-reset-annotation-search"]').click();
+    cy.get('[data-testid="demo-annotation-search"]').should("have.value", "");
+    cy.get('[data-testid="demo-annotation-laci-promoter"]').should("exist");
+    cy.get('[data-testid="demo-last-event"]').contains(
+      "annotation search reset"
+    );
+  });
+
+  it("keeps a recent annotation history and can refocus entries", () => {
+    cy.get('[data-testid="demo-annotation-gfp"]').click();
+    cy.get('[data-testid="demo-annotation-ori"]').click();
+
+    cy.get('[data-testid="demo-recent-annotation-ori"]').should("exist");
+    cy.get('[data-testid="demo-recent-annotation-gfp"]').should("exist");
+
+    cy.get('[data-testid="demo-recent-annotation-gfp"]').click();
+    cy.get('[data-testid="demo-selected-annotation"]').contains("GFP");
+    cy.get('[data-testid="demo-last-event"]').contains("focus gfp");
+
+    cy.get('[data-testid="demo-clear-recent-annotations"]').click();
+    cy.get('[data-testid="demo-recent-empty"]').contains(
+      "No recent selections"
+    );
+    cy.get('[data-testid="demo-last-event"]').contains(
+      "recent selections cleared"
+    );
   });
 
   it("shows row search hits and scrolls the row view to the match", () => {

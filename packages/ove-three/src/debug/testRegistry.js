@@ -67,6 +67,19 @@ function getLinearPoint(sceneModel, annotation, segment, index) {
   ];
 }
 
+function getRowPoint(sceneModel, row, annotation) {
+  const rowWidth = sceneModel.basesPerRow * sceneModel.baseWidth;
+  const rowGroupX = -rowWidth / 2 + 0.45;
+  const top = ((sceneModel.visibleRows.length - 1) * sceneModel.rowHeight) / 2;
+  const stack = annotation.stack || 0;
+
+  return [
+    rowGroupX + annotation.x,
+    top - row.relativeIndex * sceneModel.rowHeight + 0.34 + stack * 0.15,
+    0.06
+  ];
+}
+
 function createEntry(
   annotation,
   segment,
@@ -114,6 +127,27 @@ export function buildAnnotationRegistryEntries(sceneModel = {}, state = {}) {
             state
           )
         )
+    );
+  }
+
+  if (sceneModel.viewType === "row") {
+    return (sceneModel.visibleRows || []).flatMap(row =>
+      (row.annotations || []).map((annotation, annotationIndex) => {
+        const rowAnnotation = {
+          ...annotation,
+          name: annotation.name || annotation.label || annotation.displayLabel,
+          start: annotation.sourceStart ?? annotation.start,
+          end: annotation.sourceEnd ?? annotation.end
+        };
+
+        return createEntry(
+          rowAnnotation,
+          rowAnnotation,
+          getRowPoint(sceneModel, row, annotation),
+          annotationIndex,
+          state
+        );
+      })
     );
   }
 

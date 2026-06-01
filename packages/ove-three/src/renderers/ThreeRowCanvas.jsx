@@ -5,7 +5,8 @@ import React, {
   useMemo,
   useRef
 } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import RowDebugOverlay from "../debug/RowDebugOverlay";
 import CaretLayer from "../layers/CaretLayer";
 import RowAnnotationLayer from "../layers/RowAnnotationLayer";
@@ -25,6 +26,68 @@ import getCanvasDpr from "./getCanvasDpr";
 import getRowCameraZoom, { getRowCameraTargetY } from "./getRowCameraZoom";
 import getNextVisibleStartRow from "./getNextVisibleStartRow";
 import { getRowIndexForPosition } from "../model/buildRowSceneModel";
+import {
+  buildAnnotationRegistryEntries,
+  clearTestRegistry,
+  createRegistrySnapshot,
+  projectRegistryEntries,
+  publishTestRegistry
+} from "../debug/testRegistry";
+
+function canPublishTestRegistry() {
+  return typeof window !== "undefined" && !!window.Cypress;
+}
+
+function projectToCanvas(camera, gl, worldPosition) {
+  const rect = gl.domElement.getBoundingClientRect();
+  const vector = new THREE.Vector3(...worldPosition).project(camera);
+  const x = (vector.x * 0.5 + 0.5) * rect.width;
+  const y = (-vector.y * 0.5 + 0.5) * rect.height;
+
+  return {
+    x,
+    y,
+    clientX: rect.left + x,
+    clientY: rect.top + y
+  };
+}
+
+function TestRegistryPublisher({
+  sceneModel,
+  selectedAnnotationId,
+  hoveredAnnotationId
+}) {
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    return () => {
+      if (canPublishTestRegistry()) clearTestRegistry(window);
+    };
+  }, []);
+
+  useFrame(() => {
+    if (!canPublishTestRegistry()) return;
+    const project = worldPosition => projectToCanvas(camera, gl, worldPosition);
+    const annotations = projectRegistryEntries(
+      buildAnnotationRegistryEntries(sceneModel, {
+        selectedAnnotationId,
+        hoveredAnnotationId
+      }),
+      project
+    );
+
+    publishTestRegistry(
+      createRegistrySnapshot({
+        annotations,
+        selectedAnnotationId,
+        hoveredAnnotationId
+      }),
+      window
+    );
+  });
+
+  return null;
+}
 
 function RowPointerHitArea({
   sceneModel,
@@ -245,6 +308,7 @@ export default function ThreeRowCanvas({
   hoveredAnnotationId,
   caretPosition = -1,
   selectionRange,
+  focusRange,
   searchRanges,
   onCaretPositionChange,
   onPointerPositionChange,
@@ -331,9 +395,11 @@ export default function ThreeRowCanvas({
         ? [searchRanges]
         : [];
     const searchPosition = ranges.find(range => range?.start > -1)?.start;
+    const focusPosition = focusRange?.start;
     const selectionPosition = selectionRange?.start;
     const targetPosition =
       searchPosition ??
+      focusPosition ??
       selectionPosition ??
       (caretPosition > -1 ? caretPosition : -1);
 
@@ -342,7 +408,14 @@ export default function ThreeRowCanvas({
 
     lastAutoScrollTargetRef.current = targetPosition;
     scrollToPosition(targetPosition);
-  }, [caretPosition, scrollToPosition, searchRanges, selectionRange?.start]);
+  }, [
+    caretPosition,
+    focusRange?.key,
+    focusRange?.start,
+    scrollToPosition,
+    searchRanges,
+    selectionRange?.start
+  ]);
 
   return (
     <div
@@ -363,6 +436,11 @@ export default function ThreeRowCanvas({
             preserveDrawingBuffer
           }}
         >
+          <TestRegistryPublisher
+            sceneModel={sceneModel}
+            selectedAnnotationId={selectedAnnotationId}
+            hoveredAnnotationId={hoveredAnnotationId}
+          />
           <RowScene
             sceneModel={sceneModel}
             onSelectRange={onSelectRange}

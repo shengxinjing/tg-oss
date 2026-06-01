@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
@@ -141,12 +141,31 @@ function projectToCanvas(camera, gl, worldPosition) {
   };
 }
 
+function hasPickableObjects(scene) {
+  let hasPickable = false;
+  scene.traverse(object => {
+    if (object.userData?.pickable) hasPickable = true;
+  });
+  return hasPickable;
+}
+
+function CircularCameraFrame() {
+  const { camera } = useThree();
+
+  useLayoutEffect(() => {
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera]);
+
+  return null;
+}
+
 function TestRegistryPublisher({
   sceneModel,
   selectedAnnotationId,
   hoveredAnnotationId
 }) {
-  const { camera, gl } = useThree();
+  const { camera, gl, scene } = useThree();
 
   useEffect(() => {
     return () => {
@@ -156,6 +175,7 @@ function TestRegistryPublisher({
 
   useFrame(() => {
     if (!canPublishTestRegistry()) return;
+    if (!hasPickableObjects(scene)) return;
     const project = worldPosition => projectToCanvas(camera, gl, worldPosition);
     const annotations = projectRegistryEntries(
       buildAnnotationRegistryEntries(sceneModel, {
@@ -228,11 +248,6 @@ function CircularScene({
       <directionalLight position={[3, 5, 4]} intensity={1.3} />
       {showGrid && <gridHelper args={[7, 14, "#334155", "#1e293b"]} />}
       {showAxes && <axesHelper args={[3.2]} />}
-      <TestRegistryPublisher
-        sceneModel={sceneModel}
-        selectedAnnotationId={selectedAnnotationId}
-        hoveredAnnotationId={hoveredAnnotationId}
-      />
       <NativeContextMenuPicker
         sceneModel={sceneModel}
         onContextMenuRange={onContextMenuRange}
@@ -378,6 +393,12 @@ export default function ThreeCircularCanvas({
         preserveDrawingBuffer
       }}
     >
+      <CircularCameraFrame />
+      <TestRegistryPublisher
+        sceneModel={sceneModel}
+        selectedAnnotationId={selectedAnnotationId}
+        hoveredAnnotationId={hoveredAnnotationId}
+      />
       <Suspense fallback={null}>
         <CircularScene
           sceneModel={sceneModel}

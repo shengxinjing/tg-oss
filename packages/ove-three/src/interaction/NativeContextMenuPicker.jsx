@@ -141,6 +141,13 @@ export default function NativeContextMenuPicker({
     element.addEventListener("contextmenu", handleContextMenu);
     return () => {
       element.removeEventListener("contextmenu", handleContextMenu);
+      if (
+        !element.isConnected &&
+        window.Cypress?.oveThreeNativeContextCanvas === element
+      ) {
+        delete window.Cypress.oveThreeNativeContextCanvas;
+        delete window.Cypress.oveThreeNativeContextMenu;
+      }
     };
   }, [gl.domElement, handleContextMenu]);
 

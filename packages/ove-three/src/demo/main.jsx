@@ -10,8 +10,12 @@ function getSequenceKind(sequenceData) {
   return sequenceData.circular ? "circular DNA" : "linear DNA";
 }
 
-function getFeatureRange(feature) {
-  return `${feature.start + 1}-${feature.end + 1}`;
+function getAnnotationRange(annotation) {
+  return `${annotation.start + 1}-${annotation.end + 1}`;
+}
+
+function getAnnotationLength(annotation) {
+  return Math.max(0, annotation.end - annotation.start + 1);
 }
 
 function getViewOptions(sequenceData) {
@@ -27,6 +31,99 @@ function getPreferredView(sequenceData) {
   return "circular";
 }
 
+const layerControls = [
+  { key: "feature", label: "Features" },
+  { key: "part", label: "Parts" },
+  { key: "primer", label: "Primers" },
+  { key: "cutsite", label: "Restriction sites" },
+  { key: "orf", label: "ORFs" },
+  { key: "translation", label: "Translations" }
+];
+
+const annotationGroups = [
+  {
+    key: "feature",
+    label: "Features",
+    sourceKey: "features",
+    color: "#60a5fa"
+  },
+  { key: "part", label: "Parts", sourceKey: "parts", color: "#a855f7" },
+  { key: "primer", label: "Primers", sourceKey: "primers", color: "#22d3ee" },
+  {
+    key: "cutsite",
+    label: "Restriction sites",
+    sourceKey: "cutsites",
+    color: "#f59e0b"
+  },
+  { key: "orf", label: "ORFs", sourceKey: "orfs", color: "#67e8f9" },
+  {
+    key: "translation",
+    label: "Translations",
+    sourceKey: "translations",
+    color: "#f472b6"
+  }
+];
+
+function toTestId(value) {
+  return String(value || "item")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function setLayerVisible(currentVisibility, key, visible) {
+  const nextVisibility = { ...currentVisibility };
+  if (visible) {
+    delete nextVisibility[key];
+  } else {
+    nextVisibility[key] = false;
+  }
+  return nextVisibility;
+}
+
+function getAnnotationName(annotation, annotationType) {
+  if (annotation.name) return annotation.name;
+  if (annotation.enzyme) return annotation.enzyme;
+  if (annotationType === "orf" && annotation.frame) {
+    return `ORF frame ${annotation.frame}`;
+  }
+  return annotation.id || annotationType;
+}
+
+function getAnnotationItems(sequenceData) {
+  return annotationGroups.flatMap(group =>
+    (sequenceData[group.sourceKey] || []).map((annotation, index) => {
+      const id = annotation.id || `${group.key}-${index}`;
+      return {
+        ...annotation,
+        id,
+        annotationType: group.key,
+        groupLabel: group.label,
+        displayName: getAnnotationName(annotation, group.key),
+        color: annotation.color || group.color
+      };
+    })
+  );
+}
+
+function matchesAnnotationSearch(annotation, query) {
+  if (!query) return true;
+  const range = getAnnotationRange(annotation);
+  const text = [
+    annotation.id,
+    annotation.displayName,
+    annotation.groupLabel,
+    annotation.annotationType,
+    annotation.type,
+    range
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes(query);
+}
+
 function DemoApp() {
   const viewerRef = useRef(null);
   const [fixtureIndex, setFixtureIndex] = useState(1);
@@ -35,7 +132,12 @@ function DemoApp() {
     () => getViewOptions(sequenceData),
     [sequenceData]
   );
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const annotationItems = useMemo(
+    () => getAnnotationItems(sequenceData),
+    [sequenceData]
+  );
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null);
+  const [recentAnnotations, setRecentAnnotations] = useState([]);
   const [lastEvent, setLastEvent] = useState("none");
   const [lastExport, setLastExport] = useState(null);
   const [showLabelBoxes, setShowLabelBoxes] = useState(false);
@@ -44,6 +146,9 @@ function DemoApp() {
   const [showSearchHits, setShowSearchHits] = useState(false);
   const [showAminoAcidUnitAsCodon, setShowAminoAcidUnitAsCodon] =
     useState(false);
+  const [annotationVisibility, setAnnotationVisibility] = useState({});
+  const [annotationSearch, setAnnotationSearch] = useState("");
+  const [focusRange, setFocusRange] = useState(null);
   const [viewType, setViewType] = useState("circular");
   const searchRanges = useMemo(() => {
     const midpoint = Math.max(0, Math.floor(sequenceData.sequence.length / 2));
@@ -56,7 +161,11 @@ function DemoApp() {
   }, [sequenceData]);
 
   useEffect(() => {
-    setSelectedFeature(null);
+    setSelectedAnnotation(null);
+    setRecentAnnotations([]);
+    setFocusRange(null);
+    setAnnotationVisibility({});
+    setAnnotationSearch("");
     setLastEvent("fixture changed");
     setLastExport(null);
     setViewType(currentViewType =>
@@ -66,9 +175,73 @@ function DemoApp() {
     );
   }, [sequenceData, viewOptions]);
 
+  const normalizeFocusedAnnotation = annotation => ({
+    ...annotation,
+    displayName: getAnnotationName(annotation, annotation.annotationType)
+  });
+  const rememberAnnotation = annotation => {
+    if (!annotation?.id) return;
+    setRecentAnnotations(currentAnnotations =>
+      [
+        annotation,
+        ...currentAnnotations.filter(current => current.id !== annotation.id)
+      ].slice(0, 5)
+    );
+  };
   const handleSelectRange = annotation => {
-    setSelectedFeature(annotation);
+    const nextAnnotation = normalizeFocusedAnnotation(annotation);
+    setSelectedAnnotation(nextAnnotation);
+    rememberAnnotation(nextAnnotation);
+    setFocusRange({
+      start: annotation.start,
+      end: annotation.end,
+      key: `${annotation.id}:${Date.now()}`
+    });
     setLastEvent(`click ${annotation.id}`);
+  };
+  const handleAnnotationFocus = annotation => {
+    const start = Math.floor(Number(annotation.start));
+    const end = Math.floor(Number(annotation.end));
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+
+    const nextAnnotation = normalizeFocusedAnnotation(annotation);
+    setSelectedAnnotation(nextAnnotation);
+    rememberAnnotation(nextAnnotation);
+    setFocusRange({
+      start,
+      end,
+      key: `${annotation.id}:${Date.now()}`
+    });
+    setLastEvent(`focus ${annotation.id || annotation.displayName}`);
+  };
+  const handleLayerToggle = (layer, visible) => {
+    setAnnotationVisibility(currentVisibility =>
+      setLayerVisible(currentVisibility, layer.key, visible)
+    );
+    if (!visible && selectedAnnotation?.annotationType === layer.key) {
+      setSelectedAnnotation(null);
+      setFocusRange(null);
+    }
+    setLastEvent(`${layer.key} ${visible ? "shown" : "hidden"}`);
+  };
+  const handleClearSelection = () => {
+    setSelectedAnnotation(null);
+    setFocusRange(null);
+    setLastEvent("selection cleared");
+  };
+  const handleClearRecentAnnotations = () => {
+    setRecentAnnotations([]);
+    setLastEvent("recent selections cleared");
+  };
+  const handleViewChange = nextViewType => {
+    setViewType(nextViewType);
+    if (!selectedAnnotation) return;
+
+    setFocusRange({
+      start: selectedAnnotation.start,
+      end: selectedAnnotation.end,
+      key: `${selectedAnnotation.id}:${nextViewType}:${Date.now()}`
+    });
   };
   const handleExportPng = () => {
     const fileName = `${sequenceData.name}-${viewType}.png`;
@@ -88,6 +261,31 @@ function DemoApp() {
     if (typeof window !== "undefined") {
       window.__oveThreeLastPng = exportSummary;
     }
+  };
+  const annotationSearchQuery = annotationSearch.trim().toLowerCase();
+  const visibleAnnotationItems = annotationItems.filter(annotation => {
+    if (annotationVisibility[annotation.annotationType] === false) return false;
+    return matchesAnnotationSearch(annotation, annotationSearchQuery);
+  });
+  const selectedVisibleIndex = visibleAnnotationItems.findIndex(
+    annotation => annotation.id === selectedAnnotation?.id
+  );
+  const annotationResultLabel = `${visibleAnnotationItems.length} ${
+    visibleAnnotationItems.length === 1 ? "result" : "results"
+  }`;
+  const handleStepAnnotation = direction => {
+    if (!visibleAnnotationItems.length) return;
+    const currentIndex =
+      selectedVisibleIndex >= 0 ? selectedVisibleIndex : direction > 0 ? -1 : 0;
+    const nextIndex =
+      (currentIndex + direction + visibleAnnotationItems.length) %
+      visibleAnnotationItems.length;
+
+    handleAnnotationFocus(visibleAnnotationItems[nextIndex]);
+  };
+  const handleResetAnnotationSearch = () => {
+    setAnnotationSearch("");
+    setLastEvent("annotation search reset");
   };
 
   return (
@@ -112,6 +310,9 @@ function DemoApp() {
               `selection ${selection.start + 1}-${selection.end + 1}`
             )
           }
+          annotationVisibility={annotationVisibility}
+          focusedAnnotationId={selectedAnnotation?.id ?? null}
+          focusRange={focusRange}
           showSceneStats
           showLabelBoxes={showLabelBoxes}
           showPickRay={showPickRay}
@@ -146,7 +347,7 @@ function DemoApp() {
           <select
             data-testid="demo-view-select"
             value={viewType}
-            onChange={event => setViewType(event.target.value)}
+            onChange={event => handleViewChange(event.target.value)}
           >
             <option
               value="circular"
@@ -204,6 +405,22 @@ function DemoApp() {
           />
           Codon display
         </label>
+        <div className="ove-three-demo__layers">
+          <h2>Layers</h2>
+          {layerControls.map(layer => (
+            <label className="ove-three-demo__toggle" key={layer.key}>
+              <input
+                data-testid={`demo-layer-${layer.key}`}
+                type="checkbox"
+                checked={annotationVisibility[layer.key] !== false}
+                onChange={event =>
+                  handleLayerToggle(layer, event.target.checked)
+                }
+              />
+              {layer.label}
+            </label>
+          ))}
+        </div>
         <button
           className="ove-three-demo__button"
           data-testid="demo-export-png"
@@ -233,25 +450,165 @@ function DemoApp() {
           </div>
         </div>
         <div className="ove-three-demo__features">
-          {(sequenceData.features || []).map(feature => (
-            <div className="ove-three-demo__feature" key={feature.id}>
-              <span
-                className="ove-three-demo__swatch"
-                style={{ background: feature.color }}
-              />
-              <span>{feature.name}</span>
-              <span className="ove-three-demo__range">
-                {getFeatureRange(feature)}
-              </span>
-            </div>
-          ))}
+          <h2>Annotations</h2>
+          <label className="ove-three-demo__search">
+            <span>Search annotations</span>
+            <input
+              data-testid="demo-annotation-search"
+              type="search"
+              value={annotationSearch}
+              onChange={event => setAnnotationSearch(event.target.value)}
+              placeholder="Name, type, range..."
+            />
+          </label>
+          <div className="ove-three-demo__annotation-tools">
+            <span data-testid="demo-annotation-result-count">
+              {annotationResultLabel}
+            </span>
+            <button
+              data-testid="demo-prev-annotation"
+              type="button"
+              disabled={!visibleAnnotationItems.length}
+              onClick={() => handleStepAnnotation(-1)}
+            >
+              Previous
+            </button>
+            <button
+              data-testid="demo-next-annotation"
+              type="button"
+              disabled={!visibleAnnotationItems.length}
+              onClick={() => handleStepAnnotation(1)}
+            >
+              Next
+            </button>
+            <button
+              data-testid="demo-reset-annotation-search"
+              type="button"
+              disabled={!annotationSearch}
+              onClick={handleResetAnnotationSearch}
+            >
+              Reset
+            </button>
+          </div>
+          {annotationGroups.map(group => {
+            const groupItems = visibleAnnotationItems.filter(
+              annotation => annotation.annotationType === group.key
+            );
+            if (!groupItems.length) return null;
+
+            return (
+              <section
+                className="ove-three-demo__annotation-group"
+                key={group.key}
+              >
+                <h3>{group.label}</h3>
+                {groupItems.map(annotation => (
+                  <button
+                    className={`ove-three-demo__feature${
+                      selectedAnnotation?.id === annotation.id
+                        ? " is-selected"
+                        : ""
+                    }`}
+                    data-testid={`demo-annotation-${toTestId(annotation.id)}`}
+                    key={annotation.id}
+                    type="button"
+                    onClick={() => handleAnnotationFocus(annotation)}
+                  >
+                    <span
+                      className="ove-three-demo__swatch"
+                      style={{ background: annotation.color }}
+                    />
+                    <span>{annotation.displayName}</span>
+                    <span className="ove-three-demo__range">
+                      {getAnnotationRange(annotation)}
+                    </span>
+                  </button>
+                ))}
+              </section>
+            );
+          })}
+          {!visibleAnnotationItems.length && (
+            <p className="ove-three-demo__empty">No annotations match.</p>
+          )}
         </div>
-        {selectedFeature && (
-          <p>
-            Selected: {selectedFeature.name} ({selectedFeature.start + 1}-
-            {selectedFeature.end + 1})
-          </p>
+        {selectedAnnotation && (
+          <section
+            className="ove-three-demo__selected-card"
+            data-testid="demo-selected-annotation-card"
+          >
+            <h2>Selected</h2>
+            <p data-testid="demo-selected-annotation">
+              {selectedAnnotation.displayName || selectedAnnotation.name}
+            </p>
+            <dl>
+              <div>
+                <dt>Type</dt>
+                <dd data-testid="demo-selected-annotation-type">
+                  {selectedAnnotation.annotationType}
+                </dd>
+              </div>
+              <div>
+                <dt>Range</dt>
+                <dd>{getAnnotationRange(selectedAnnotation)}</dd>
+              </div>
+              <div>
+                <dt>Length</dt>
+                <dd data-testid="demo-selected-annotation-length">
+                  {getAnnotationLength(selectedAnnotation)} bp
+                </dd>
+              </div>
+            </dl>
+            <div className="ove-three-demo__selected-actions">
+              <button
+                data-testid="demo-selected-focus"
+                type="button"
+                onClick={() => handleAnnotationFocus(selectedAnnotation)}
+              >
+                Focus again
+              </button>
+              <button
+                data-testid="demo-clear-selection"
+                type="button"
+                onClick={handleClearSelection}
+              >
+                Clear
+              </button>
+            </div>
+          </section>
         )}
+        <section className="ove-three-demo__recent">
+          <div className="ove-three-demo__recent-header">
+            <h2>Recent selections</h2>
+            <button
+              data-testid="demo-clear-recent-annotations"
+              type="button"
+              disabled={!recentAnnotations.length}
+              onClick={handleClearRecentAnnotations}
+            >
+              Clear
+            </button>
+          </div>
+          {recentAnnotations.length ? (
+            recentAnnotations.map(annotation => (
+              <button
+                className={`ove-three-demo__recent-item${
+                  selectedAnnotation?.id === annotation.id ? " is-selected" : ""
+                }`}
+                data-testid={`demo-recent-annotation-${toTestId(
+                  annotation.id
+                )}`}
+                key={annotation.id}
+                type="button"
+                onClick={() => handleAnnotationFocus(annotation)}
+              >
+                <span>{annotation.displayName}</span>
+                <span>{getAnnotationRange(annotation)}</span>
+              </button>
+            ))
+          ) : (
+            <p data-testid="demo-recent-empty">No recent selections</p>
+          )}
+        </section>
         <p data-testid="demo-last-event">Last event: {lastEvent}</p>
       </aside>
     </main>

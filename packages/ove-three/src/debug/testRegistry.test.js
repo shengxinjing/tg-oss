@@ -112,6 +112,45 @@ describe("testRegistry", () => {
     assert.equal(snapshot.annotations["orf-1"].color, "#facc15");
   });
 
+  it("builds row annotation entries with selected state", () => {
+    const entries = buildAnnotationRegistryEntries(
+      {
+        viewType: "row",
+        basesPerRow: 80,
+        baseWidth: 0.09,
+        rowHeight: 0.78,
+        visibleRows: [
+          {
+            relativeIndex: 0,
+            annotations: [
+              {
+                id: "ori",
+                name: "ori",
+                annotationType: "feature",
+                start: 1811,
+                end: 1879,
+                x: 2.1,
+                width: 1.3,
+                rowIndex: 22
+              }
+            ],
+            cutsites: [],
+            translations: []
+          }
+        ]
+      },
+      { selectedAnnotationId: "ori" }
+    );
+    const snapshot = createRegistrySnapshot({
+      annotations: entries,
+      selectedAnnotationId: "ori"
+    });
+
+    assert.equal(snapshot.annotations.ori.selected, true);
+    assert.equal(snapshot.annotationNames.ori, "ori");
+    assert.equal(snapshot.annotations.ori.annotationType, "feature");
+  });
+
   it("builds label entries and reports overlap counts", () => {
     const labels = buildLabelRegistryEntries({
       sceneModel,

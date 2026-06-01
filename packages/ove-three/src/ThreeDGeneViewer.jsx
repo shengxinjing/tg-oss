@@ -10,6 +10,7 @@ import ThreeLinearCanvas from "./renderers/ThreeLinearCanvas";
 import ThreeRowCanvas from "./renderers/ThreeRowCanvas";
 import buildCircularSceneModel from "./model/buildCircularSceneModel";
 import buildLinearSceneModel from "./model/buildLinearSceneModel";
+import { getRowIndexForPosition } from "./model/buildRowSceneModel";
 import PickingDebugOverlay from "./debug/PickingDebugOverlay";
 import PointerPositionDebugOverlay from "./debug/PointerPositionDebugOverlay";
 import useRaycastPicking from "./interaction/useRaycastPicking";
@@ -80,6 +81,8 @@ export default function ThreeDGeneViewer({
   showPointerPosition = false,
   mode = "dna",
   annotationVisibility,
+  focusedAnnotationId,
+  focusRange,
   linearBaseWidth,
   maxDpr = 2,
   preserveDrawingBuffer = false,
@@ -125,6 +128,10 @@ export default function ThreeDGeneViewer({
     onBackgroundContextMenu
   });
   const { resetPicking } = picking;
+  const selectedAnnotationId =
+    focusedAnnotationId === undefined
+      ? picking.selectedId
+      : focusedAnnotationId;
   const sceneRevisionKey = useMemo(
     () =>
       getSceneRevisionKey({
@@ -144,6 +151,33 @@ export default function ThreeDGeneViewer({
     setRenderStats(collectRenderStats(undefined, { fixtureName }));
     resetPicking();
   }, [fixtureName, resetPicking, sceneRevisionKey]);
+
+  useEffect(() => {
+    if (!focusRange) return;
+
+    const start = Math.floor(Number(focusRange.start));
+    const end = Math.floor(Number(focusRange.end ?? focusRange.start));
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+
+    setCaretPosition(start);
+    setPointerPosition(null);
+    setSelectionStart(null);
+    setSelectionRange({ start, end });
+  }, [focusRange, sceneRevisionKey]);
+
+  useEffect(() => {
+    if (!isRow || !focusRange) return;
+
+    const start = Math.floor(Number(focusRange.start));
+    if (!Number.isFinite(start)) return;
+
+    setRowVisibleStartRow(
+      getRowIndexForPosition(start, {
+        basesPerRow: 80,
+        sequenceLength: getSequenceLength(sequenceData)
+      })
+    );
+  }, [focusRange, isRow, sequenceData]);
 
   const handleCaretPositionChange = useCallback(
     position => {
@@ -184,7 +218,7 @@ export default function ThreeDGeneViewer({
       {showSceneStats && <SceneStatsReadout stats={renderStats} />}
       <PickingDebugOverlay
         hoveredId={picking.hoveredId}
-        selectedId={picking.selectedId}
+        selectedId={selectedAnnotationId}
         lastPick={picking.lastPick}
         lastLatencyMs={picking.lastLatencyMs}
         showPickRay={showPickRay}
@@ -210,10 +244,11 @@ export default function ThreeDGeneViewer({
           onBackgroundContextMenu={picking.handleBackgroundContextMenu}
           onHoverRange={picking.handleHover}
           onHoverEnd={picking.handleLeave}
-          selectedAnnotationId={picking.selectedId}
+          selectedAnnotationId={selectedAnnotationId}
           hoveredAnnotationId={picking.hoveredId}
           caretPosition={caretPosition}
           selectionRange={selectionRange}
+          focusRange={focusRange}
           searchRanges={searchRanges}
           onCaretPositionChange={handleCaretPositionChange}
           onPointerPositionChange={setPointerPosition}
@@ -239,7 +274,7 @@ export default function ThreeDGeneViewer({
           onHoverRange={picking.handleHover}
           onHoverEnd={picking.handleLeave}
           showPointerPosition={showPointerPosition}
-          selectedAnnotationId={picking.selectedId}
+          selectedAnnotationId={selectedAnnotationId}
           hoveredAnnotationId={picking.hoveredId}
           caretPosition={caretPosition}
           selectionRange={selectionRange}
@@ -275,7 +310,7 @@ export default function ThreeDGeneViewer({
           showPointerPosition={showPointerPosition}
           pickRay={picking.pickRay}
           showSceneStats={showSceneStats}
-          selectedAnnotationId={picking.selectedId}
+          selectedAnnotationId={selectedAnnotationId}
           hoveredAnnotationId={picking.hoveredId}
           caretPosition={caretPosition}
           selectionRange={selectionRange}
