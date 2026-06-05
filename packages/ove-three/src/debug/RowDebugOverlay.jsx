@@ -7,6 +7,11 @@ export default function RowDebugOverlay({ sceneModel }) {
       data-testid="ove-three-row-debug"
       data-visible-start-row={sceneModel.visibleStartRow}
       data-visible-end-row={sceneModel.visibleEndRow}
+      data-sequence-case={sceneModel.sequenceCase}
+      data-reverse-row-sequence={String(sceneModel.reverseRowSequence)}
+      data-show-strand-hints={String(sceneModel.showStrandHints)}
+      data-show-dna-base-colors={String(sceneModel.showDnaBaseColors)}
+      data-amino-acid-color-mode={sceneModel.aminoAcidColorMode}
     >
       <div>Rows</div>
       <strong>

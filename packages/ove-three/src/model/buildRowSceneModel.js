@@ -41,6 +41,51 @@ function reverseComplement(sequence, mode) {
     .join("");
 }
 
+function formatSequence(sequence, sequenceCase) {
+  if (sequenceCase === "upper") return sequence.toUpperCase();
+  if (sequenceCase === "lower") return sequence.toLowerCase();
+  return sequence;
+}
+
+function buildStrandHints(showStrandHints) {
+  if (!showStrandHints) return null;
+  return {
+    forwardStart: "5'",
+    forwardEnd: "3'",
+    complementStart: "3'",
+    complementEnd: "5'"
+  };
+}
+
+const dnaBaseColors = {
+  a: "#ef4444",
+  t: "#3b82f6",
+  u: "#3b82f6",
+  g: "#f59e0b",
+  c: "#22c55e"
+};
+
+function buildBaseColors(sequence) {
+  return sequence.split("").map((base, index) => ({
+    base,
+    index,
+    color: dnaBaseColors[String(base).toLowerCase()] || "#94a3b8"
+  }));
+}
+
+function getAminoAcidColor(aminoAcid, colorMode) {
+  if (colorMode !== "hydrophobicity") {
+    return aminoAcid?.colorByFamily || "#22d3ee";
+  }
+
+  const value = aminoAcid?.value || "";
+  if ("AVILMFWY".includes(value)) return "#fb923c";
+  if ("STNQCGP".includes(value)) return "#38bdf8";
+  if ("KRH".includes(value)) return "#a78bfa";
+  if ("DE".includes(value)) return "#f87171";
+  return "#94a3b8";
+}
+
 function buildAxisTicks(start, end, basesPerRow) {
   const ticks = [];
   const firstMajor = Math.ceil((start + 1) / 10) * 10 - 1;
@@ -201,6 +246,7 @@ function buildCodonsForTranslation(annotation, options) {
     sequence,
     mode,
     showAminoAcidUnitAsCodon,
+    aminoAcidColorMode,
     baseWidth,
     rowStart,
     rowEnd
@@ -231,7 +277,7 @@ function buildCodonsForTranslation(annotation, options) {
         label: showAminoAcidUnitAsCodon
           ? triplet.toUpperCase()
           : aminoAcid?.value || "?",
-        color: aminoAcid?.colorByFamily || "#22d3ee"
+        color: getAminoAcidColor(aminoAcid, aminoAcidColorMode)
       });
     }
     return codons;
@@ -251,7 +297,7 @@ function buildCodonsForTranslation(annotation, options) {
       label: showAminoAcidUnitAsCodon
         ? triplet.toUpperCase()
         : aminoAcid?.value || "?",
-      color: aminoAcid?.colorByFamily || "#22d3ee"
+      color: getAminoAcidColor(aminoAcid, aminoAcidColorMode)
     });
   }
 
@@ -384,15 +430,26 @@ export default function buildRowSceneModel(
     visibleRowCount = 8,
     overscan = 1,
     baseWidth = 0.09,
+    baseSpacing = 1,
     rowHeight = 0.78,
     rowHeightPx = 72,
     mode = "dna",
+    sequenceCase = "raw",
+    reverseRowSequence = false,
+    showStrandHints = false,
+    showDnaBaseColors = false,
     showAminoAcidUnitAsCodon = false,
+    aminoAcidColorMode = "family",
     annotationVisibility = {}
   } = {}
 ) {
   const sequenceLength = getSequenceLength(sequenceData);
   const sequence = getSequence(sequenceData, sequenceLength);
+  const resolvedBaseSpacing =
+    Number.isFinite(Number(baseSpacing)) && Number(baseSpacing) > 0
+      ? Number(baseSpacing)
+      : 1;
+  const resolvedBaseWidth = baseWidth * resolvedBaseSpacing;
   const rowSize = toPositiveInteger(basesPerRow, 100);
   const totalRows = sequenceLength ? Math.ceil(sequenceLength / rowSize) : 0;
   const startRow = totalRows
@@ -419,7 +476,7 @@ export default function buildRowSceneModel(
     sequenceLength,
     circular: sequenceData.circular === true,
     basesPerRow: rowSize,
-    baseWidth,
+    baseWidth: resolvedBaseWidth,
     annotationVisibility
   });
   const rowCutsites = buildRowCutsiteSegments(sequenceData, {
@@ -427,7 +484,7 @@ export default function buildRowSceneModel(
     sequenceLength,
     circular: sequenceData.circular === true,
     basesPerRow: rowSize,
-    baseWidth,
+    baseWidth: resolvedBaseWidth,
     annotationVisibility
   });
   const rowTranslations = buildRowTranslationSegments(sequenceData, {
@@ -435,9 +492,10 @@ export default function buildRowSceneModel(
     sequenceLength,
     circular: sequenceData.circular === true,
     basesPerRow: rowSize,
-    baseWidth,
+    baseWidth: resolvedBaseWidth,
     mode,
     showAminoAcidUnitAsCodon,
+    aminoAcidColorMode,
     annotationVisibility
   });
 
@@ -445,10 +503,21 @@ export default function buildRowSceneModel(
     const start = rowIndex * rowSize;
     const end = Math.min(sequenceLength - 1, start + rowSize - 1);
     const rowSequence = sequence.slice(start, end + 1);
+    const displaySequence = formatSequence(
+      reverseRowSequence ? reverseComplement(rowSequence, mode) : rowSequence,
+      sequenceCase
+    );
+    const displayComplementSequence = formatSequence(
+      displaySequence
+        .split("")
+        .map(base => complementBase(base, mode))
+        .join(""),
+      sequenceCase
+    );
 
     const annotations = avoidRowLabelCollisions(
       rowAnnotations.filter(annotation => annotation.rowIndex === rowIndex),
-      { baseWidth }
+      { baseWidth: resolvedBaseWidth }
     );
     const cutsites = rowCutsites.filter(
       cutsite => cutsite.rowIndex === rowIndex
@@ -463,11 +532,10 @@ export default function buildRowSceneModel(
       start,
       end,
       length: end - start + 1,
-      sequence: rowSequence,
-      complementSequence: rowSequence
-        .split("")
-        .map(base => complementBase(base, mode))
-        .join(""),
+      sequence: displaySequence,
+      complementSequence: displayComplementSequence,
+      strandHints: buildStrandHints(showStrandHints),
+      baseColors: showDnaBaseColors ? buildBaseColors(displaySequence) : [],
       axisTicks: buildAxisTicks(start, end, rowSize),
       annotations,
       cutsites,
@@ -482,9 +550,15 @@ export default function buildRowSceneModel(
     sequenceLength,
     circular: sequenceData.circular === true,
     basesPerRow: rowSize,
-    baseWidth,
+    baseWidth: resolvedBaseWidth,
+    baseSpacing: resolvedBaseSpacing,
     rowHeight,
     rowHeightPx: toPositiveInteger(rowHeightPx, 72),
+    sequenceCase,
+    reverseRowSequence,
+    showStrandHints,
+    showDnaBaseColors,
+    aminoAcidColorMode,
     totalRows,
     totalHeightPx: totalRows * toPositiveInteger(rowHeightPx, 72),
     visibleStartRow: startRow,

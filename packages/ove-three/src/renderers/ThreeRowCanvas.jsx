@@ -55,15 +55,16 @@ function projectToCanvas(camera, gl, worldPosition) {
 function TestRegistryPublisher({
   sceneModel,
   selectedAnnotationId,
-  hoveredAnnotationId
+  hoveredAnnotationId,
+  registryId
 }) {
   const { camera, gl } = useThree();
 
   useEffect(() => {
     return () => {
-      if (canPublishTestRegistry()) clearTestRegistry(window);
+      if (canPublishTestRegistry()) clearTestRegistry(window, registryId);
     };
-  }, []);
+  }, [registryId]);
 
   useFrame(() => {
     if (!canPublishTestRegistry()) return;
@@ -82,7 +83,8 @@ function TestRegistryPublisher({
         selectedAnnotationId,
         hoveredAnnotationId
       }),
-      window
+      window,
+      registryId
     );
   });
 
@@ -297,7 +299,15 @@ export default function ThreeRowCanvas({
   visibleRowCount = 10,
   mode = "dna",
   annotationVisibility,
+  sequenceCase = "raw",
+  reverseRowSequence = false,
+  showStrandHints = false,
+  baseSpacing = 1,
+  showDnaBaseColors = false,
+  showRowWarnings = false,
+  showRowChromatogram = false,
   showAminoAcidUnitAsCodon = false,
+  aminoAcidColorMode = "family",
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
@@ -321,7 +331,8 @@ export default function ThreeRowCanvas({
   parentRef,
   onStatsChange,
   maxDpr = 2,
-  preserveDrawingBuffer = false
+  preserveDrawingBuffer = false,
+  testRegistryId = "row"
 }) {
   const rowHeightPx = 72;
   const lastAutoScrollTargetRef = useRef(null);
@@ -333,14 +344,26 @@ export default function ThreeRowCanvas({
         visibleRowCount,
         rowHeightPx,
         mode,
+        sequenceCase,
+        reverseRowSequence,
+        showStrandHints,
+        baseSpacing,
+        showDnaBaseColors,
         showAminoAcidUnitAsCodon,
+        aminoAcidColorMode,
         annotationVisibility
       }),
     [
       annotationVisibility,
+      aminoAcidColorMode,
+      baseSpacing,
       basesPerRow,
       mode,
+      reverseRowSequence,
+      sequenceCase,
+      showDnaBaseColors,
       showAminoAcidUnitAsCodon,
+      showStrandHints,
       sequenceData,
       visibleRowCount,
       visibleStartRow
@@ -421,6 +444,8 @@ export default function ThreeRowCanvas({
     <div
       className="ove-three-row-view"
       data-testid="ove-three-row-view"
+      data-bases-per-row={basesPerRow}
+      data-visible-row-count={visibleRowCount}
       onWheel={handleWheel}
     >
       <RowDebugOverlay sceneModel={sceneModel} />
@@ -440,6 +465,7 @@ export default function ThreeRowCanvas({
             sceneModel={sceneModel}
             selectedAnnotationId={selectedAnnotationId}
             hoveredAnnotationId={hoveredAnnotationId}
+            registryId={testRegistryId}
           />
           <RowScene
             sceneModel={sceneModel}
@@ -466,6 +492,22 @@ export default function ThreeRowCanvas({
             onStatsChange={onStatsChange}
           />
         </Canvas>
+        {showRowWarnings && (
+          <div
+            className="ove-three-row-smoke-layer"
+            data-testid="ove-three-row-warning-layer"
+          >
+            Warnings layer ready
+          </div>
+        )}
+        {showRowChromatogram && (
+          <div
+            className="ove-three-row-smoke-layer ove-three-row-smoke-layer--chromatogram"
+            data-testid="ove-three-row-chromatogram-layer"
+          >
+            Chromatogram trace placeholder
+          </div>
+        )}
       </div>
       <div
         className="ove-three-row-scroll-spacer"

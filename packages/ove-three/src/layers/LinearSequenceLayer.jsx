@@ -12,7 +12,7 @@ export default function LinearSequenceLayer({ sceneModel }) {
       </mesh>
       <mesh position={[0, 0, -0.02]}>
         <planeGeometry args={[modelWidth, 0.42]} />
-        <meshBasicMaterial color="#0075e8" />
+        <meshBasicMaterial color={linearMapStyle.backboneColor} />
       </mesh>
     </group>
   );

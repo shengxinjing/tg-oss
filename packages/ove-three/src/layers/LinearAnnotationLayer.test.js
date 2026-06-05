@@ -15,8 +15,9 @@ describe("LinearAnnotationLayer", () => {
   });
 
   it("uses SVG-like flat map colors", () => {
-    assert.equal(linearMapStyle.backgroundColor, "#0b1422");
-    assert.equal(linearMapStyle.textColor, "#e5eefb");
-    assert.equal(linearMapStyle.strokeColor, "#dbeafe");
+    assert.equal(linearMapStyle.backgroundColor, "#f8fafc");
+    assert.equal(linearMapStyle.textColor, "#111827");
+    assert.equal(linearMapStyle.strokeColor, "#111827");
+    assert.equal(linearMapStyle.partColor, "#b65ce8");
   });
 });

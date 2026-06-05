@@ -1,6 +1,7 @@
 import React from "react";
 import createUserData from "../interaction/createUserData";
 import isContextPointerButton from "../interaction/isContextPointerButton";
+import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import shouldHandlePick from "../interaction/shouldHandlePick";
 import SafeText from "./SafeText";
 import rowMapStyle from "./rowMapStyle";
@@ -100,6 +101,11 @@ function RowAnnotation({
           onHoverRange?.(eventAnnotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
+        onPointerDown={event => {
+          if (!isPrimaryPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+        }}
         onClick={event => {
           if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();

@@ -4,7 +4,9 @@ import {
   buildLabelRegistryEntries,
   countOverlappingLabelBoxes,
   createRegistrySnapshot,
-  projectRegistryEntries
+  clearTestRegistry,
+  projectRegistryEntries,
+  publishTestRegistry
 } from "./testRegistry";
 
 const sceneModel = {
@@ -112,6 +114,19 @@ describe("testRegistry", () => {
     assert.equal(snapshot.annotations["orf-1"].color, "#facc15");
   });
 
+  it("matches linear registry positions to rendered annotation order", () => {
+    const entries = buildAnnotationRegistryEntries({
+      ...sceneModel,
+      viewType: "linear",
+      baseWidth: 0.02
+    });
+    const snapshot = createRegistrySnapshot({ annotations: entries });
+
+    assert.equal(snapshot.annotations["feature-1"].worldPosition[1], 0.95);
+    assert.equal(snapshot.annotations["primer-1"].worldPosition[1], 2.93);
+    assert.equal(snapshot.annotations["cutsite-1"], undefined);
+  });
+
   it("builds row annotation entries with selected state", () => {
     const entries = buildAnnotationRegistryEntries(
       {
@@ -182,5 +197,22 @@ describe("testRegistry", () => {
     assert.equal(projected[0].y, 180);
     assert.equal(projected[0].clientX, 340);
     assert.equal(projected[0].clientY, 210);
+  });
+
+  it("publishes named registry snapshots for split canvas tests", () => {
+    const target = { Cypress: {} };
+    const snapshot = createRegistrySnapshot({
+      annotations: [{ id: "feature-1", name: "Feature 1" }]
+    });
+
+    publishTestRegistry(snapshot, target, "circular");
+
+    assert.equal(target.Cypress.oveThreeTestRegistry, snapshot);
+    assert.equal(target.Cypress.oveThreeTestRegistries.circular, snapshot);
+
+    clearTestRegistry(target, "circular");
+
+    assert.equal(target.Cypress.oveThreeTestRegistry, undefined);
+    assert.equal(target.Cypress.oveThreeTestRegistries.circular, undefined);
   });
 });

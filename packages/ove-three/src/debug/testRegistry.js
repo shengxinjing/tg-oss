@@ -116,8 +116,11 @@ function createEntry(
 
 export function buildAnnotationRegistryEntries(sceneModel = {}, state = {}) {
   if (sceneModel.viewType === "linear") {
-    return (sceneModel.annotations || []).flatMap(
-      (annotation, annotationIndex) =>
+    return (sceneModel.annotations || [])
+      .filter(annotation =>
+        ["feature", "part", "primer", "orf"].includes(annotation.annotationType)
+      )
+      .flatMap((annotation, annotationIndex) =>
         annotation.segments.map(segment =>
           createEntry(
             annotation,
@@ -127,7 +130,7 @@ export function buildAnnotationRegistryEntries(sceneModel = {}, state = {}) {
             state
           )
         )
-    );
+      );
   }
 
   if (sceneModel.viewType === "row") {
@@ -181,7 +184,7 @@ export function buildAnnotationRegistryEntries(sceneModel = {}, state = {}) {
       createEntry(
         annotation,
         segment,
-        getPoint(getAngle(segment), 2.98, 0.13),
+        getPoint(getAngle(segment), 3.15, 0.13),
         annotationIndex,
         state
       )
@@ -290,14 +293,23 @@ export function createRegistrySnapshot({
   };
 }
 
-export function publishTestRegistry(snapshot, target) {
+export function publishTestRegistry(snapshot, target, registryId) {
   if (!target?.Cypress) return snapshot;
   target.Cypress.oveThreeTestRegistry = snapshot;
+  if (registryId) {
+    target.Cypress.oveThreeTestRegistries = {
+      ...(target.Cypress.oveThreeTestRegistries || {}),
+      [registryId]: snapshot
+    };
+  }
   return snapshot;
 }
 
-export function clearTestRegistry(target) {
+export function clearTestRegistry(target, registryId) {
   if (target?.Cypress?.oveThreeTestRegistry) {
     delete target.Cypress.oveThreeTestRegistry;
+  }
+  if (registryId && target?.Cypress?.oveThreeTestRegistries) {
+    delete target.Cypress.oveThreeTestRegistries[registryId];
   }
 }

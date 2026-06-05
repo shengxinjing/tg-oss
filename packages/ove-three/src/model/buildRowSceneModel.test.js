@@ -317,4 +317,135 @@ describe("buildRowSceneModel", () => {
       ["ATG", "AAA", "TAA"]
     );
   });
+
+  it("formats row sequence case for display without changing the source sequence", () => {
+    const model = buildRowSceneModel(
+      {
+        sequence: "aTgCat"
+      },
+      {
+        basesPerRow: 6,
+        visibleRowCount: 1,
+        overscan: 0,
+        sequenceCase: "lower"
+      }
+    );
+
+    assert.equal(model.sequence, "aTgCat");
+    assert.equal(model.visibleRows[0].sequence, "atgcat");
+    assert.equal(model.visibleRows[0].complementSequence, "tacgta");
+  });
+
+  it("can reverse row sequence display while preserving row coordinates", () => {
+    const model = buildRowSceneModel(
+      {
+        sequence: "atgc"
+      },
+      {
+        basesPerRow: 4,
+        visibleRowCount: 1,
+        overscan: 0,
+        reverseRowSequence: true
+      }
+    );
+
+    assert.equal(model.visibleRows[0].start, 0);
+    assert.equal(model.visibleRows[0].end, 3);
+    assert.equal(model.visibleRows[0].sequence, "gcat");
+    assert.equal(model.visibleRows[0].complementSequence, "cgta");
+  });
+
+  it("exposes strand hints and base spacing for the row renderer", () => {
+    const model = buildRowSceneModel(sequenceData, {
+      basesPerRow: 5,
+      visibleRowCount: 1,
+      overscan: 0,
+      baseSpacing: 1.35,
+      showStrandHints: true
+    });
+
+    assert.equal(model.baseSpacing, 1.35);
+    assert.equal(model.baseWidth, 0.1215);
+    assert.deepEqual(model.visibleRows[0].strandHints, {
+      forwardStart: "5'",
+      forwardEnd: "3'",
+      complementStart: "3'",
+      complementEnd: "5'"
+    });
+  });
+
+  it("can expose per-base colors for row DNA display", () => {
+    const model = buildRowSceneModel(
+      {
+        sequence: "atgc"
+      },
+      {
+        basesPerRow: 4,
+        visibleRowCount: 1,
+        overscan: 0,
+        showDnaBaseColors: true
+      }
+    );
+
+    assert.deepEqual(
+      model.visibleRows[0].baseColors.map(base => [base.base, base.color]),
+      [
+        ["a", "#ef4444"],
+        ["t", "#3b82f6"],
+        ["g", "#f59e0b"],
+        ["c", "#22c55e"]
+      ]
+    );
+  });
+
+  it("supports alternate amino acid color modes for translation rows", () => {
+    const familyModel = buildRowSceneModel(
+      {
+        sequence: "atgaaataaatg",
+        translations: [
+          {
+            id: "translation-1",
+            name: "Forward translation",
+            start: 0,
+            end: 8,
+            forward: true
+          }
+        ]
+      },
+      {
+        basesPerRow: 12,
+        visibleStartRow: 0,
+        visibleRowCount: 1,
+        overscan: 0,
+        aminoAcidColorMode: "family"
+      }
+    );
+    const hydrophobicityModel = buildRowSceneModel(
+      {
+        sequence: "atgaaataaatg",
+        translations: [
+          {
+            id: "translation-1",
+            name: "Forward translation",
+            start: 0,
+            end: 8,
+            forward: true
+          }
+        ]
+      },
+      {
+        basesPerRow: 12,
+        visibleStartRow: 0,
+        visibleRowCount: 1,
+        overscan: 0,
+        aminoAcidColorMode: "hydrophobicity"
+      }
+    );
+
+    assert.notEqual(
+      familyModel.visibleRows[0].translations[0].codons[0].color,
+      hydrophobicityModel.visibleRows[0].translations[0].codons[0].color
+    );
+    assert.equal(hydrophobicityModel.aminoAcidColorMode, "hydrophobicity");
+  });
 });

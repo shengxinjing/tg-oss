@@ -5,6 +5,7 @@ import createArrowArcGeometry from "../geometry/createArrowArcGeometry";
 import createArcRibbonGeometry from "../geometry/createArcRibbonGeometry";
 import createUserData from "../interaction/createUserData";
 import isContextPointerButton from "../interaction/isContextPointerButton";
+import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import shouldHandlePick from "../interaction/shouldHandlePick";
 
 const fallbackColors = {
@@ -114,6 +115,11 @@ function AnnotationRibbon({
         onHoverRange?.(annotation, event.object.userData, event);
       }}
       onPointerOut={onHoverEnd}
+      onPointerDown={event => {
+        if (!isPrimaryPointerButton(event)) return;
+        if (!shouldHandlePick(event, event.object.userData)) return;
+        event.stopPropagation();
+      }}
       onClick={event => {
         if (!shouldHandlePick(event, event.object.userData)) return;
         event.stopPropagation();

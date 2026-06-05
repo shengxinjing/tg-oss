@@ -53,6 +53,7 @@ function buildLabel(
   const leaderEnd = getPoint(angle, labelRadius - 0.18, 0.24);
   const text = getText(annotation);
   const size = measureText(text, { fontSize });
+  const arcWidth = Math.max(0, segment.totalAngle * leaderRadius * scale);
 
   return {
     id: `${annotation.id}-${segment.start}-${segment.end}`,
@@ -70,6 +71,7 @@ function buildLabel(
     y: position[2] * scale,
     width: size.width,
     height: size.height,
+    arcWidth,
     fontSizeWorld,
     priority: getPriority(annotation),
     selected: selectedAnnotationId === annotation.id,
@@ -92,10 +94,12 @@ export default function buildCircularLabels({
   sceneModel = {},
   labelRadius = 3.45,
   leaderRadius = 2.92,
+  labelScale = 1,
   scale = 120,
   fontSize = 12,
   denseLabelThreshold = 120,
   maxVisibleLabels = 72,
+  onlyShowOverflowLabels = false,
   selectedAnnotationId,
   hoveredAnnotationId
 } = {}) {
@@ -106,7 +110,8 @@ export default function buildCircularLabels({
         : count,
     0
   );
-  const fontSizeWorld = getDenseFontSize(rawLabelCount);
+  const safeLabelScale = Math.max(0.7, Number(labelScale) || 1);
+  const fontSizeWorld = getDenseFontSize(rawLabelCount) * safeLabelScale;
   const labels = (sceneModel.annotations || [])
     .filter(annotation => labelableTypes.has(annotation.annotationType))
     .flatMap(annotation =>
@@ -115,17 +120,20 @@ export default function buildCircularLabels({
           labelRadius,
           leaderRadius,
           scale,
-          fontSize,
+          fontSize: fontSize * safeLabelScale,
           fontSizeWorld,
           selectedAnnotationId,
           hoveredAnnotationId
         })
       )
     );
+  const overflowManagedLabels = onlyShowOverflowLabels
+    ? labels.filter(label => label.width > label.arcWidth)
+    : labels;
   const densityManagedLabels =
-    labels.length > denseLabelThreshold
-      ? labels.filter(keepDenseLabel)
-      : labels;
+    overflowManagedLabels.length > denseLabelThreshold
+      ? overflowManagedLabels.filter(keepDenseLabel)
+      : overflowManagedLabels;
 
   return avoidCircularLabelCollisions(densityManagedLabels, {
     maxVisibleLabels

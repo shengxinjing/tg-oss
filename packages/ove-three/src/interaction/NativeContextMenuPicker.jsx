@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
+import {
+  buildAnnotationRegistryEntries,
+  projectRegistryEntries
+} from "../debug/testRegistry";
 import { getBestPickableIntersection } from "./shouldHandlePick";
 
 function normalizeAnnotation(annotation) {
@@ -49,10 +53,49 @@ function createContextEvent(
   };
 }
 
+function projectToClient(camera, gl, worldPosition) {
+  const rect = gl.domElement.getBoundingClientRect();
+  const vector = new THREE.Vector3(...worldPosition).project(camera);
+  const x = (vector.x * 0.5 + 0.5) * rect.width;
+  const y = (-vector.y * 0.5 + 0.5) * rect.height;
+
+  return {
+    x,
+    y,
+    clientX: rect.left + x,
+    clientY: rect.top + y
+  };
+}
+
+function findNearestProjectedAnnotation({
+  camera,
+  event,
+  gl,
+  sceneModel,
+  threshold = 22
+}) {
+  const entries = projectRegistryEntries(
+    buildAnnotationRegistryEntries(sceneModel),
+    worldPosition => projectToClient(camera, gl, worldPosition)
+  );
+
+  return entries.reduce((nearest, entry) => {
+    const distance = Math.hypot(
+      entry.clientX - event.clientX,
+      entry.clientY - event.clientY
+    );
+
+    if (distance > threshold) return nearest;
+    if (!nearest || distance < nearest.distance) return { entry, distance };
+    return nearest;
+  }, null)?.entry;
+}
+
 export default function NativeContextMenuPicker({
   sceneModel,
   onContextMenuRange,
-  onBackgroundContextMenu
+  onBackgroundContextMenu,
+  registryId
 }) {
   const { camera, gl, scene } = useThree();
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
@@ -71,6 +114,14 @@ export default function NativeContextMenuPicker({
 
       const intersections = raycaster.intersectObjects(scene.children, true);
       const best = getBestPickableIntersection({ intersections });
+      const fallbackEntry =
+        best ||
+        findNearestProjectedAnnotation({
+          camera,
+          event,
+          gl,
+          sceneModel
+        });
       if (window.Cypress) {
         window.Cypress.oveThreeLastNativeContextPick = {
           clientX: event.clientX,
@@ -88,7 +139,10 @@ export default function NativeContextMenuPicker({
           pickableCount: intersections.filter(
             intersection => intersection.object?.userData?.pickable
           ).length,
-          annotationId: best?.object?.userData?.annotationId || null
+          annotationId:
+            best?.object?.userData?.annotationId ||
+            fallbackEntry?.annotationId ||
+            null
         };
       }
       if (best) {
@@ -99,6 +153,22 @@ export default function NativeContextMenuPicker({
             annotation,
             userData,
             createContextEvent(event, best, intersections, raycaster)
+          );
+          return;
+        }
+      }
+      if (fallbackEntry) {
+        const annotation = findSceneAnnotation(sceneModel, fallbackEntry);
+        if (annotation) {
+          onContextMenuRange?.(
+            annotation,
+            fallbackEntry,
+            createContextEvent(
+              event,
+              { object: { userData: fallbackEntry }, point: null },
+              intersections,
+              raycaster
+            )
           );
           return;
         }
@@ -115,7 +185,7 @@ export default function NativeContextMenuPicker({
     },
     [
       camera,
-      gl.domElement,
+      gl,
       onBackgroundContextMenu,
       onContextMenuRange,
       pointer,
@@ -131,6 +201,16 @@ export default function NativeContextMenuPicker({
     if (rect.width <= 0 || rect.height <= 0) return;
     window.Cypress.oveThreeNativeContextCanvas = gl.domElement;
     window.Cypress.oveThreeNativeContextMenu = handleContextMenu;
+    if (registryId) {
+      window.Cypress.oveThreeNativeContextCanvases = {
+        ...(window.Cypress.oveThreeNativeContextCanvases || {}),
+        [registryId]: gl.domElement
+      };
+      window.Cypress.oveThreeNativeContextMenus = {
+        ...(window.Cypress.oveThreeNativeContextMenus || {}),
+        [registryId]: handleContextMenu
+      };
+    }
     if (window.Cypress.oveThreeLastNativeContextPick === undefined) {
       window.Cypress.oveThreeLastNativeContextPick = null;
     }
@@ -148,8 +228,12 @@ export default function NativeContextMenuPicker({
         delete window.Cypress.oveThreeNativeContextCanvas;
         delete window.Cypress.oveThreeNativeContextMenu;
       }
+      if (registryId && window.Cypress?.oveThreeNativeContextMenus) {
+        delete window.Cypress.oveThreeNativeContextCanvases?.[registryId];
+        delete window.Cypress.oveThreeNativeContextMenus[registryId];
+      }
     };
-  }, [gl.domElement, handleContextMenu]);
+  }, [gl.domElement, handleContextMenu, registryId]);
 
   return null;
 }

@@ -11,6 +11,7 @@
   top: 12px !important;
   left: 12px !important;
   z-index: 5 !important;
+  pointer-events: none !important;
 }
 
 .ove-three-scene-stats {
@@ -27,6 +28,7 @@
   font-size: 12px;
   line-height: 1.35;
   backdrop-filter: blur(10px);
+  pointer-events: none;
 }
 
 .ove-three-scene-stats__fixture {
@@ -92,13 +94,34 @@
   backdrop-filter: blur(10px);
 }
 
+.ove-three-edit-preview {
+  position: absolute;
+  bottom: 12px;
+  left: 236px;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: fit-content;
+  max-width: min(520px, calc(100% - 260px));
+  padding: 8px 10px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 6px;
+  background: rgba(7, 17, 31, 0.78);
+  color: #f8fafc;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
 .ove-three-row-view {
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 480px;
   overflow: hidden;
-  background: #f8fafc;
+  background: #07111f;
 }
 
 .ove-three-row-canvas-sticky {
@@ -135,6 +158,592 @@
   color: #93a4ba;
 }
 
+.ove-three-row-smoke-layer {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 3;
+  padding: 7px 10px;
+  border: 1px solid rgba(14, 165, 233, 0.32);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.88);
+  color: #0f172a;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.ove-three-row-smoke-layer--chromatogram {
+  bottom: 48px;
+}
+
+.ove-three-editor {
+  display: grid;
+  grid-template-rows: 52px auto minmax(0, 1fr) 42px;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #07111f;
+  color: #e5eefb;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.ove-three-editor__chrome {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0 18px;
+  background: #0b1422;
+}
+
+.ove-three-editor__identity {
+  display: grid;
+  flex: 0 0 220px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ove-three-editor__identity strong {
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.ove-three-editor__identity span {
+  overflow: hidden;
+  color: #93a4ba;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ove-three-editor__menu,
+.ove-three-editor__toolbar,
+.ove-three-editor__panel-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.ove-three-editor__menu {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 260px;
+}
+
+.ove-three-editor__toolbar {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 1;
+}
+
+.ove-three-editor__panel-actions {
+  flex: 0 0 auto;
+}
+
+.ove-three-editor__menu button,
+.ove-three-editor__toolbar button,
+.ove-three-editor__panel-actions button,
+.ove-three-editor__tabs button,
+.ove-three-editor__status-bar button {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ove-three-editor__menu button {
+  padding: 7px 10px;
+}
+
+.ove-three-editor__toolbar button {
+  border-color: rgba(148, 163, 184, 0.22);
+  padding: 7px 10px;
+  background: #111c2d;
+}
+
+.ove-three-editor__menu button.is-active {
+  border-color: rgba(125, 211, 252, 0.34);
+  background: #12304b;
+  color: #f8fafc;
+}
+
+.ove-three-editor__panel-actions button {
+  border-color: rgba(148, 163, 184, 0.22);
+  padding: 7px 8px;
+  background: #0f172a;
+  font-size: 12px;
+}
+
+.ove-three-editor__menu button:hover,
+.ove-three-editor__toolbar button:hover,
+.ove-three-editor__panel-actions button:hover,
+.ove-three-editor__tabs button:hover:not(:disabled),
+.ove-three-editor__status-bar button:hover {
+  border-color: rgba(125, 211, 252, 0.34);
+  background: #12304b;
+  color: #f8fafc;
+}
+
+.ove-three-editor__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ove-three-editor__command-shelf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 7px 18px;
+  background: #07111f;
+  color: #dbeafe;
+  font-size: 12px;
+}
+
+.ove-three-editor__command-shelf > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ove-three-editor__command-shelf button {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #0f172a;
+  color: #e5eefb;
+  cursor: pointer;
+}
+
+.ove-three-editor__command-shelf button:hover:not(:disabled) {
+  border-color: rgba(125, 211, 252, 0.34);
+  background: #12304b;
+}
+
+.ove-three-editor__command-shelf button:disabled,
+.ove-three-editor__toolbar button:disabled,
+.ove-three-editor__status-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ove-three-editor.is-fullscreen .ove-three-editor__body,
+.ove-three-editor.is-side-panel-collapsed .ove-three-editor__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ove-three-editor.is-fullscreen .ove-three-demo__panel,
+.ove-three-editor.is-side-panel-collapsed .ove-three-demo__panel {
+  display: none;
+}
+
+.ove-three-editor__main {
+  display: grid;
+  grid-template-rows: 42px auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.ove-three-editor__tabs {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 0 18px;
+  background: #0b1422;
+}
+
+.ove-three-editor__tabs button {
+  height: 100%;
+  border-radius: 0;
+  padding: 0 2px;
+  border-bottom: 2px solid transparent;
+  color: #93a4ba;
+}
+
+.ove-three-editor__tabs button.is-active {
+  border-bottom-color: #38bdf8;
+  color: #f8fafc;
+}
+
+.ove-three-editor__tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ove-three-editor__view-options {
+  position: relative;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 8px 18px;
+  background: #07111f;
+}
+
+.ove-three-editor__circular-controls,
+.ove-three-editor__linear-controls,
+.ove-three-editor__row-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.ove-three-editor__circular-controls label,
+.ove-three-editor__linear-controls label,
+.ove-three-editor__row-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ove-three-editor__circular-controls input,
+.ove-three-editor__linear-controls input,
+.ove-three-editor__row-controls input[type="range"] {
+  width: 120px;
+}
+
+.ove-three-editor__layer-summary,
+.ove-three-editor__fit-summary {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.ove-three-editor__linear-title {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.ove-three-editor__minimap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #07111f 48%, transparent 50%),
+    conic-gradient(from var(--rotation), #38bdf8 0 35deg, #23344b 35deg 360deg);
+}
+
+.ove-three-editor__minimap span {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: calc(12px / var(--zoom));
+  min-width: 5px;
+  height: 4px;
+  border-radius: 999px;
+  background: #f8fafc;
+  transform: translateX(-50%);
+}
+
+.ove-three-editor__sequence-preview {
+  max-width: 260px;
+  overflow: hidden;
+  color: #f8fafc;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ove-three-editor__canvas {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ove-three-linked-map {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.15fr);
+  gap: 1px;
+  height: 100%;
+  min-height: 0;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.ove-three-linked-map.is-sequence-collapsed {
+  grid-template-columns: minmax(320px, 1fr) 72px;
+}
+
+.ove-three-linked-map__pane {
+  position: relative;
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #07111f;
+}
+
+.ove-three-linked-map__pane-title {
+  position: relative;
+  z-index: 7;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 0 12px;
+  background: #0b1422;
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ove-three-linked-map__pane-title button {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 4px;
+  padding: 3px 8px;
+  background: #101c2e;
+  color: #dbeafe;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ove-three-linked-map__pane-title button:hover {
+  border-color: rgba(125, 211, 252, 0.6);
+}
+
+.ove-three-linked-map__switch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 5px;
+}
+
+.ove-three-linked-map__switch button {
+  border: 0;
+  border-radius: 0;
+  padding: 3px 7px;
+  background: #0f1a2b;
+}
+
+.ove-three-linked-map__switch button.is-active {
+  background: #123b5a;
+  color: #f8fafc;
+}
+
+.ove-three-linked-map__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid rgba(148, 163, 184, 0.18);
+  background: #0b1422;
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ove-three-linked-map__rail span,
+.ove-three-linked-map__rail button {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.ove-three-linked-map__rail button {
+  border: 1px solid rgba(125, 211, 252, 0.36);
+  border-radius: 4px;
+  padding: 8px 5px;
+  background: #12324d;
+  color: #e0f2fe;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ove-three-linked-map__rail button:hover {
+  border-color: rgba(125, 211, 252, 0.72);
+  background: #164263;
+}
+
+.ove-three-linked-map__viewer,
+.ove-three-linked-map__viewer .ove-three-row-view {
+  min-height: 0;
+}
+
+.ove-three-linked-map__viewer .ove-three-edit-preview {
+  left: 12px;
+  max-width: calc(100% - 24px);
+}
+
+.ove-three-linked-map__viewer .ove-three-scene-stats {
+  width: 190px;
+}
+
+.ove-three-viewer > [data-testid="ove-three-webgl-canvas"],
+.ove-three-row-canvas-sticky > [data-testid="ove-three-webgl-canvas"] {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ove-three-viewer > [data-testid="ove-three-webgl-canvas"] canvas,
+.ove-three-row-canvas-sticky > [data-testid="ove-three-webgl-canvas"] canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ove-three-editor__closed-panel {
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  height: 100%;
+  min-height: 420px;
+  background: #07111f;
+  color: #dbeafe;
+}
+
+.ove-three-editor__closed-panel button {
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #12304b;
+  color: #e0f2fe;
+  cursor: pointer;
+}
+
+.ove-three-editor__properties-panel,
+.ove-three-editor__genbank-panel,
+.ove-three-editor__preview-panel {
+  height: 100%;
+  min-height: 420px;
+  overflow: auto;
+  padding: 24px;
+  background: #07111f;
+  color: #dbeafe;
+}
+
+.ove-three-editor__properties-panel h2,
+.ove-three-editor__preview-panel h2 {
+  margin: 0 0 16px;
+  color: #f8fafc;
+}
+
+.ove-three-editor__properties-panel dl,
+.ove-three-demo__command-status dl {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.ove-three-editor__properties-panel dl div,
+.ove-three-demo__command-status dl div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.ove-three-editor__properties-panel dt,
+.ove-three-demo__command-status dt {
+  color: #93a4ba;
+}
+
+.ove-three-editor__properties-panel dd,
+.ove-three-demo__command-status dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ove-three-editor__genbank-panel,
+.ove-three-demo__advanced-tools pre {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
+.ove-three-editor__preview-panel {
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.ove-three-editor__preview-panel button {
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #12304b;
+  color: #e0f2fe;
+  cursor: pointer;
+}
+
+.ove-three-editor__gc-aa-plot {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 6;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 6px;
+  background: rgba(7, 17, 31, 0.84);
+  color: #dbeafe;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.ove-three-editor__canvas > .ove-three-viewer,
+.ove-three-editor__canvas > .ove-three-row-view {
+  min-height: 0;
+}
+
+.ove-three-editor__status-bar {
+  display: grid;
+  grid-template-columns: 90px 130px 120px 140px minmax(0, 1fr) 130px 170px;
+  align-items: center;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  background: #0b1422;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.ove-three-editor__status-bar span,
+.ove-three-editor__status-bar select,
+.ove-three-editor__status-bar button {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 0 14px;
+}
+
+.ove-three-editor__status-bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ove-three-editor__status-bar select {
+  border: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.18);
+  background: #0b1422;
+  color: #e5eefb;
+}
+
 .ove-three-demo {
   min-height: 100vh;
   display: grid;
@@ -153,12 +762,22 @@
   min-height: 100vh;
 }
 
+.ove-three-editor .ove-three-demo__viewer {
+  min-height: 0;
+}
+
 .ove-three-demo__panel {
   max-height: 100vh;
   overflow: auto;
   padding: 20px;
   background: rgba(7, 17, 31, 0.88);
   border-left: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.ove-three-editor .ove-three-demo__panel {
+  max-height: 100%;
+  min-height: 0;
+  overflow: auto;
 }
 
 .ove-three-demo__panel h1 {
@@ -174,6 +793,34 @@
 .ove-three-demo__features {
   display: grid;
   gap: 12px;
+}
+
+.ove-three-demo__command-status,
+.ove-three-demo__advanced-tools {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding-bottom: 14px;
+}
+
+.ove-three-demo__command-status h2,
+.ove-three-demo__advanced-tools h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.ove-three-demo__advanced-tools pre {
+  max-height: 140px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 6px;
+  padding: 8px;
+  background: #0b1422;
+  color: #dbeafe;
+  font-size: 11px;
 }
 
 .ove-three-demo__features h2 {
@@ -286,6 +933,29 @@
   padding: 7px 8px;
   background: #0f172a;
   color: #e5eefb;
+}
+
+.ove-three-demo__field input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #0f172a;
+  color: #e5eefb;
+}
+
+.ove-three-demo__field input[type="range"] {
+  padding: 0;
+}
+
+.ove-three-demo__warning {
+  padding: 8px 10px;
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  border-radius: 6px;
+  margin: 0 0 14px;
+  background: rgba(250, 204, 21, 0.08);
+  color: #fef3c7;
+  font-size: 12px;
 }
 
 .ove-three-demo__button {

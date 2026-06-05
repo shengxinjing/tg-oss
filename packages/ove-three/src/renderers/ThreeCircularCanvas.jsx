@@ -14,6 +14,7 @@ import SelectionLayer from "../layers/SelectionLayer";
 import PerfOverlay from "../perf/PerfOverlay";
 import NativeContextMenuPicker from "../interaction/NativeContextMenuPicker";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
+import getNextCircularRotation from "../interaction/getNextCircularRotation";
 import mapPointerToCircularPosition from "../interaction/mapPointerToCircularPosition";
 import setOrbitControlsEnabled from "../interaction/setOrbitControlsEnabled";
 import getCanvasDpr from "./getCanvasDpr";
@@ -26,7 +27,19 @@ import {
   publishTestRegistry
 } from "../debug/testRegistry";
 
-function mapCircularEvent(event, { radius, sequenceLength, mode }) {
+const baseCameraDirection = new THREE.Vector3(0, 5.1, 7.2).normalize();
+
+function getCircularCameraDistance(size = {}) {
+  const shortSide = Math.max(1, Math.min(size.width || 1, size.height || 1));
+  const fitScale = Math.max(1, 360 / shortSide);
+
+  return THREE.MathUtils.clamp(8.82 * fitScale, 8.82, 22);
+}
+
+function mapCircularEvent(
+  event,
+  { radius, rotationRadians, sequenceLength, mode }
+) {
   return mapPointerToCircularPosition(
     {
       x: event.point.x,
@@ -34,6 +47,7 @@ function mapCircularEvent(event, { radius, sequenceLength, mode }) {
     },
     {
       radius,
+      rotationRadians,
       sequenceLength,
       mode
     }
@@ -50,9 +64,12 @@ function CircularPointerHitArea({
   onSelectionEnd,
   isSelecting,
   showPointerPosition,
+  circularZoom,
+  circularRotation,
   controlsRef
 }) {
-  const radius = 3.35;
+  const rotationRadians = (Number(circularRotation) * Math.PI) / 180;
+  const radius = 3.35 * Number(circularZoom || 1);
   const restoreOrbitControls = () => {
     setOrbitControlsEnabled(controlsRef, true);
   };
@@ -65,6 +82,7 @@ function CircularPointerHitArea({
         if (isSelecting) {
           const mapped = mapCircularEvent(event, {
             radius,
+            rotationRadians,
             sequenceLength,
             mode
           });
@@ -73,13 +91,19 @@ function CircularPointerHitArea({
         }
         if (!showPointerPosition) return;
         onPointerPositionChange?.(
-          mapCircularEvent(event, { radius, sequenceLength, mode })
+          mapCircularEvent(event, {
+            radius,
+            rotationRadians,
+            sequenceLength,
+            mode
+          })
         );
       }}
       onPointerDown={event => {
         if (!isPrimaryPointerButton(event)) return;
         const mapped = mapCircularEvent(event, {
           radius,
+          rotationRadians,
           sequenceLength,
           mode
         });
@@ -97,6 +121,7 @@ function CircularPointerHitArea({
         if (!isSelecting) return;
         const mapped = mapCircularEvent(event, {
           radius,
+          rotationRadians,
           sequenceLength,
           mode
         });
@@ -108,6 +133,7 @@ function CircularPointerHitArea({
         event.stopPropagation();
         const mapped = mapCircularEvent(event, {
           radius,
+          rotationRadians,
           sequenceLength,
           mode
         });
@@ -150,12 +176,17 @@ function hasPickableObjects(scene) {
 }
 
 function CircularCameraFrame() {
-  const { camera } = useThree();
+  const {
+    camera,
+    size: { height, width }
+  } = useThree();
 
   useLayoutEffect(() => {
+    const distance = getCircularCameraDistance({ height, width });
+    camera.position.copy(baseCameraDirection.clone().multiplyScalar(distance));
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
-  }, [camera]);
+  }, [camera, height, width]);
 
   return null;
 }
@@ -163,15 +194,16 @@ function CircularCameraFrame() {
 function TestRegistryPublisher({
   sceneModel,
   selectedAnnotationId,
-  hoveredAnnotationId
+  hoveredAnnotationId,
+  registryId
 }) {
   const { camera, gl, scene } = useThree();
 
   useEffect(() => {
     return () => {
-      if (canPublishTestRegistry()) clearTestRegistry(window);
+      if (canPublishTestRegistry()) clearTestRegistry(window, registryId);
     };
-  }, []);
+  }, [registryId]);
 
   useFrame(() => {
     if (!canPublishTestRegistry()) return;
@@ -200,7 +232,8 @@ function TestRegistryPublisher({
         selectedAnnotationId,
         hoveredAnnotationId
       }),
-      window
+      window,
+      registryId
     );
   });
 
@@ -219,6 +252,15 @@ function CircularScene({
   showGrid,
   showBoxHelpers,
   showLabelBoxes,
+  circularLabelScale,
+  circularLabelLineOpacity,
+  showCircularInternalLabels,
+  onlyShowCircularOverflowLabels,
+  annotationLimit,
+  showCircularAxis,
+  showCircularAxisNumbers,
+  circularZoom,
+  circularRotation,
   showPickRay,
   showPointerPosition,
   pickRay,
@@ -236,10 +278,15 @@ function CircularScene({
   isSelecting,
   fixtureName,
   parentRef,
-  onStatsChange
+  onStatsChange,
+  testRegistryId
 }) {
   const radius = 2.4;
   const controlsRef = useRef(null);
+  const { size } = useThree();
+  const cameraDistance = getCircularCameraDistance(size);
+  const safeZoom = Math.max(0.5, Number(circularZoom) || 1);
+  const rotationRadians = (Number(circularRotation) * Math.PI) / 180;
 
   return (
     <>
@@ -252,6 +299,7 @@ function CircularScene({
         sceneModel={sceneModel}
         onContextMenuRange={onContextMenuRange}
         onBackgroundContextMenu={onBackgroundContextMenu}
+        registryId={testRegistryId}
       />
       <CircularPointerHitArea
         sequenceLength={sceneModel.sequenceLength}
@@ -263,61 +311,77 @@ function CircularScene({
         onSelectionEnd={onSelectionEnd}
         isSelecting={isSelecting}
         showPointerPosition={showPointerPosition}
+        circularZoom={safeZoom}
+        circularRotation={circularRotation}
         controlsRef={controlsRef}
       />
-      <CircularBackboneLayer radius={radius} />
-      <SelectionLayer
-        selectionRange={selectionRange}
-        sequenceLength={sceneModel.sequenceLength}
-      />
-      <CaretLayer
-        position={caretPosition}
-        sequenceLength={sceneModel.sequenceLength}
-        mode={mode}
-      />
-      <CircularAxisLayer
-        sequenceLength={sceneModel.sequenceLength}
-        radius={2.58}
-      />
-      <CircularAxisNumbersLayer
-        sequenceLength={sceneModel.sequenceLength}
-        radius={3}
-      />
-      <CircularOrfLayer
-        sceneModel={sceneModel}
-        onSelectRange={onSelectRange}
-        onDoubleClickRange={onDoubleClickRange}
-        onContextMenuRange={onContextMenuRange}
-        onHoverRange={onHoverRange}
-        onHoverEnd={onHoverEnd}
-        selectedAnnotationId={selectedAnnotationId}
-      />
-      <CircularAnnotationLayer
-        sceneModel={sceneModel}
-        radius={radius}
-        onSelectRange={onSelectRange}
-        onDoubleClickRange={onDoubleClickRange}
-        onContextMenuRange={onContextMenuRange}
-        onHoverRange={onHoverRange}
-        onHoverEnd={onHoverEnd}
-        selectedAnnotationId={selectedAnnotationId}
-        hoveredAnnotationId={hoveredAnnotationId}
-        showBoxHelpers={showBoxHelpers}
-      />
-      <CircularCutsiteLayer
-        sceneModel={sceneModel}
-        onSelectRange={onSelectRange}
-        onDoubleClickRange={onDoubleClickRange}
-        onContextMenuRange={onContextMenuRange}
-        onHoverRange={onHoverRange}
-        onHoverEnd={onHoverEnd}
-      />
-      <CircularLabelLayer
-        sceneModel={sceneModel}
-        selectedAnnotationId={selectedAnnotationId}
-        hoveredAnnotationId={hoveredAnnotationId}
-        showLabelBoxes={showLabelBoxes}
-      />
+      <group
+        rotation={[0, -rotationRadians, 0]}
+        scale={[safeZoom, safeZoom, safeZoom]}
+      >
+        <CircularBackboneLayer radius={radius} />
+        <SelectionLayer
+          selectionRange={selectionRange}
+          sequenceLength={sceneModel.sequenceLength}
+        />
+        <CaretLayer
+          position={caretPosition}
+          sequenceLength={sceneModel.sequenceLength}
+          mode={mode}
+        />
+        {showCircularAxis && (
+          <CircularAxisLayer
+            sequenceLength={sceneModel.sequenceLength}
+            radius={2.58}
+          />
+        )}
+        {showCircularAxisNumbers && (
+          <CircularAxisNumbersLayer
+            sequenceLength={sceneModel.sequenceLength}
+            radius={3}
+          />
+        )}
+        <CircularOrfLayer
+          sceneModel={sceneModel}
+          onSelectRange={onSelectRange}
+          onDoubleClickRange={onDoubleClickRange}
+          onContextMenuRange={onContextMenuRange}
+          onHoverRange={onHoverRange}
+          onHoverEnd={onHoverEnd}
+          selectedAnnotationId={selectedAnnotationId}
+        />
+        <CircularAnnotationLayer
+          sceneModel={sceneModel}
+          radius={radius}
+          onSelectRange={onSelectRange}
+          onDoubleClickRange={onDoubleClickRange}
+          onContextMenuRange={onContextMenuRange}
+          onHoverRange={onHoverRange}
+          onHoverEnd={onHoverEnd}
+          selectedAnnotationId={selectedAnnotationId}
+          hoveredAnnotationId={hoveredAnnotationId}
+          showBoxHelpers={showBoxHelpers}
+        />
+        <CircularCutsiteLayer
+          sceneModel={sceneModel}
+          onSelectRange={onSelectRange}
+          onDoubleClickRange={onDoubleClickRange}
+          onContextMenuRange={onContextMenuRange}
+          onHoverRange={onHoverRange}
+          onHoverEnd={onHoverEnd}
+        />
+        <CircularLabelLayer
+          sceneModel={sceneModel}
+          selectedAnnotationId={selectedAnnotationId}
+          hoveredAnnotationId={hoveredAnnotationId}
+          showLabelBoxes={showLabelBoxes}
+          labelScale={circularLabelScale}
+          lineOpacity={circularLabelLineOpacity}
+          showInternalLabels={showCircularInternalLabels}
+          onlyShowOverflowLabels={onlyShowCircularOverflowLabels}
+          maxVisibleLabels={annotationLimit}
+        />
+      </group>
       {showPickRay && pickRay && (
         <Line
           points={[
@@ -336,6 +400,12 @@ function CircularScene({
         ref={controlsRef}
         enabled={!isSelecting}
         enableDamping
+        enablePan={false}
+        enableZoom={false}
+        minDistance={cameraDistance * 0.82}
+        maxDistance={cameraDistance * 1.18}
+        minPolarAngle={0.55}
+        maxPolarAngle={1.18}
         makeDefault
       />
       {showSceneStats && (
@@ -343,6 +413,7 @@ function CircularScene({
           fixtureName={fixtureName}
           parentRef={parentRef}
           onStatsChange={onStatsChange}
+          testRegistryId={testRegistryId}
         />
       )}
     </>
@@ -361,6 +432,16 @@ export default function ThreeCircularCanvas({
   showGrid = false,
   showBoxHelpers = false,
   showLabelBoxes = false,
+  circularLabelScale = 1,
+  circularLabelLineOpacity = 0.8,
+  showCircularInternalLabels = false,
+  onlyShowCircularOverflowLabels = false,
+  annotationLimit = 72,
+  showCircularAxis = true,
+  showCircularAxisNumbers = true,
+  circularZoom = 1,
+  circularRotation = 0,
+  onCircularRotationChange,
   showPickRay = false,
   showPointerPosition = false,
   pickRay,
@@ -380,11 +461,25 @@ export default function ThreeCircularCanvas({
   parentRef,
   onStatsChange,
   maxDpr = 2,
-  preserveDrawingBuffer = false
+  preserveDrawingBuffer = false,
+  testRegistryId = "circular"
 }) {
+  const handleWheel = event => {
+    if (!onCircularRotationChange) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onCircularRotationChange(
+      getNextCircularRotation({
+        rotation: circularRotation,
+        deltaY: event.deltaY
+      })
+    );
+  };
+
   return (
     <Canvas
       data-testid="ove-three-webgl-canvas"
+      onWheel={handleWheel}
       camera={{ position: [0, 5.1, 7.2], fov: 45, near: 0.1, far: 100 }}
       dpr={getCanvasDpr(maxDpr)}
       gl={{
@@ -398,6 +493,7 @@ export default function ThreeCircularCanvas({
         sceneModel={sceneModel}
         selectedAnnotationId={selectedAnnotationId}
         hoveredAnnotationId={hoveredAnnotationId}
+        registryId={testRegistryId}
       />
       <Suspense fallback={null}>
         <CircularScene
@@ -412,6 +508,15 @@ export default function ThreeCircularCanvas({
           showGrid={showGrid}
           showBoxHelpers={showBoxHelpers}
           showLabelBoxes={showLabelBoxes}
+          circularLabelScale={circularLabelScale}
+          circularLabelLineOpacity={circularLabelLineOpacity}
+          showCircularInternalLabels={showCircularInternalLabels}
+          onlyShowCircularOverflowLabels={onlyShowCircularOverflowLabels}
+          annotationLimit={annotationLimit}
+          showCircularAxis={showCircularAxis}
+          showCircularAxisNumbers={showCircularAxisNumbers}
+          circularZoom={circularZoom}
+          circularRotation={circularRotation}
           showPickRay={showPickRay}
           showPointerPosition={showPointerPosition}
           pickRay={pickRay}
@@ -430,6 +535,7 @@ export default function ThreeCircularCanvas({
           fixtureName={fixtureName}
           parentRef={parentRef}
           onStatsChange={onStatsChange}
+          testRegistryId={testRegistryId}
         />
       </Suspense>
     </Canvas>

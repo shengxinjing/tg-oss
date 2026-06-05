@@ -20,7 +20,7 @@ function LabelBox({ label }) {
   );
 }
 
-function CircularLabel({ label, showLabelBoxes }) {
+function CircularLabel({ label, showLabelBoxes, lineOpacity }) {
   return (
     <group>
       <Line
@@ -28,7 +28,7 @@ function CircularLabel({ label, showLabelBoxes }) {
         color={label.color}
         lineWidth={1}
         transparent
-        opacity={0.8}
+        opacity={lineOpacity}
       />
       {showLabelBoxes && <LabelBox label={label} />}
       <Billboard position={label.position}>
@@ -51,16 +51,36 @@ export default function CircularLabelLayer({
   sceneModel,
   selectedAnnotationId,
   hoveredAnnotationId,
-  showLabelBoxes = false
+  showLabelBoxes = false,
+  labelScale = 1,
+  lineOpacity = 0.8,
+  showInternalLabels = false,
+  onlyShowOverflowLabels = false,
+  maxVisibleLabels = 72
 }) {
   const labels = useMemo(
     () =>
       buildCircularLabels({
         sceneModel,
+        labelRadius: showInternalLabels ? 2.16 : 3.45,
+        leaderRadius: showInternalLabels ? 2.56 : 2.92,
+        labelScale,
+        lineOpacity,
+        maxVisibleLabels,
+        onlyShowOverflowLabels,
         selectedAnnotationId,
         hoveredAnnotationId
       }).visible,
-    [hoveredAnnotationId, sceneModel, selectedAnnotationId]
+    [
+      hoveredAnnotationId,
+      labelScale,
+      lineOpacity,
+      maxVisibleLabels,
+      onlyShowOverflowLabels,
+      sceneModel,
+      selectedAnnotationId,
+      showInternalLabels
+    ]
   );
 
   return (
@@ -70,6 +90,7 @@ export default function CircularLabelLayer({
           key={label.id}
           label={label}
           showLabelBoxes={showLabelBoxes}
+          lineOpacity={lineOpacity}
         />
       ))}
     </group>

@@ -3,7 +3,9 @@ import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
 import CaretLayer from "../layers/CaretLayer";
-import LinearAnnotationLayer from "../layers/LinearAnnotationLayer";
+import LinearAnnotationLayer, {
+  getLinearAnnotationLayout
+} from "../layers/LinearAnnotationLayer";
 import { linearMapStyle } from "../layers/LinearAnnotationLayer";
 import LinearCutsiteLayer from "../layers/LinearCutsiteLayer";
 import LinearSequenceLayer from "../layers/LinearSequenceLayer";
@@ -21,6 +23,8 @@ import {
   projectRegistryEntries,
   publishTestRegistry
 } from "../debug/testRegistry";
+
+const LINEAR_CAMERA_TARGET_Y = -4.5;
 
 function canPublishTestRegistry() {
   return typeof window !== "undefined" && !!window.Cypress;
@@ -43,15 +47,16 @@ function projectToCanvas(camera, gl, worldPosition) {
 function TestRegistryPublisher({
   sceneModel,
   selectedAnnotationId,
-  hoveredAnnotationId
+  hoveredAnnotationId,
+  registryId
 }) {
   const { camera, gl } = useThree();
 
   useEffect(() => {
     return () => {
-      if (canPublishTestRegistry()) clearTestRegistry(window);
+      if (canPublishTestRegistry()) clearTestRegistry(window, registryId);
     };
-  }, []);
+  }, [registryId]);
 
   useFrame(() => {
     if (!canPublishTestRegistry()) return;
@@ -70,7 +75,8 @@ function TestRegistryPublisher({
         selectedAnnotationId,
         hoveredAnnotationId
       }),
-      window
+      window,
+      registryId
     );
   });
 
@@ -82,7 +88,7 @@ function LinearCameraFrame({ sceneModel }) {
   const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
 
   useLayoutEffect(() => {
-    camera.position.set(0, 1.55, 20);
+    camera.position.set(0, LINEAR_CAMERA_TARGET_Y, 20);
     camera.zoom = getLinearCameraZoom({
       canvasWidth: size.width,
       canvasHeight: size.height,
@@ -109,9 +115,30 @@ function mapLinearEvent(event, { sceneModel, mode }) {
   );
 }
 
+function findLinearAnnotationAtPoint(sceneModel, point, position) {
+  const annotations = (sceneModel.annotations || []).filter(annotation =>
+    ["feature", "part", "primer", "orf"].includes(annotation.annotationType)
+  );
+
+  return annotations.find((annotation, annotationIndex) => {
+    const layout = getLinearAnnotationLayout(
+      annotation.annotationType,
+      annotationIndex
+    );
+    const isNearLane = Math.abs(point.y - layout.y) <= layout.height / 2 + 0.18;
+
+    if (!isNearLane) return false;
+
+    return annotation.segments.some(
+      segment => position >= segment.start && position <= segment.end
+    );
+  });
+}
+
 function LinearPointerHitArea({
   sceneModel,
   mode,
+  onSelectRange,
   onCaretPositionChange,
   onPointerPositionChange,
   onSelectionStart,
@@ -136,6 +163,17 @@ function LinearPointerHitArea({
       onPointerDown={event => {
         if (!isPrimaryPointerButton(event)) return;
         const mapped = mapLinearEvent(event, { sceneModel, mode });
+        const annotation = mapped
+          ? findLinearAnnotationAtPoint(
+              sceneModel,
+              event.point,
+              mapped.position
+            )
+          : null;
+        if (annotation) {
+          event.stopPropagation();
+          return;
+        }
         if (mapped) onSelectionStart?.(mapped.position);
       }}
       onPointerUp={event => {
@@ -146,7 +184,20 @@ function LinearPointerHitArea({
       onClick={event => {
         if (!isPrimaryPointerButton(event)) return;
         const mapped = mapLinearEvent(event, { sceneModel, mode });
-        if (mapped) onCaretPositionChange?.(mapped.position);
+        if (!mapped) return;
+
+        const annotation = findLinearAnnotationAtPoint(
+          sceneModel,
+          event.point,
+          mapped.position
+        );
+        if (annotation) {
+          event.stopPropagation();
+          onSelectRange?.(annotation, undefined, event);
+          return;
+        }
+
+        onCaretPositionChange?.(mapped.position);
       }}
     >
       <planeGeometry args={[modelWidth, 8.2]} />
@@ -227,6 +278,7 @@ function LinearScene({
       <LinearPointerHitArea
         sceneModel={sceneModel}
         mode={mode}
+        onSelectRange={onSelectRange}
         onCaretPositionChange={onCaretPositionChange}
         onPointerPositionChange={onPointerPositionChange}
         onSelectionStart={onSelectionStart}
@@ -269,7 +321,7 @@ function LinearScene({
         enableRotate={false}
         enableDamping
         makeDefault
-        target={[0, 1.55, 0]}
+        target={[0, LINEAR_CAMERA_TARGET_Y, 0]}
       />
       {showSceneStats && (
         <PerfOverlay
@@ -307,7 +359,8 @@ export default function ThreeLinearCanvas({
   parentRef,
   onStatsChange,
   maxDpr = 2,
-  preserveDrawingBuffer = false
+  preserveDrawingBuffer = false,
+  testRegistryId = "linear"
 }) {
   return (
     <Canvas
@@ -325,6 +378,7 @@ export default function ThreeLinearCanvas({
         sceneModel={sceneModel}
         selectedAnnotationId={selectedAnnotationId}
         hoveredAnnotationId={hoveredAnnotationId}
+        registryId={testRegistryId}
       />
       <Suspense fallback={null}>
         <LinearScene

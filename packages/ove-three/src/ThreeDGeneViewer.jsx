@@ -79,15 +79,36 @@ export default function ThreeDGeneViewer({
   showLabelBoxes = false,
   showPickRay = false,
   showPointerPosition = false,
+  circularLabelScale = 1,
+  circularLabelLineOpacity = 0.8,
+  showCircularInternalLabels = false,
+  onlyShowCircularOverflowLabels = false,
+  annotationLimit = 72,
   mode = "dna",
   annotationVisibility,
   focusedAnnotationId,
   focusRange,
   linearBaseWidth,
+  showCircularAxis = true,
+  showCircularAxisNumbers = true,
+  circularZoom = 1,
+  circularRotation = 0,
+  onCircularRotationChange,
   maxDpr = 2,
   preserveDrawingBuffer = false,
+  rowSequenceCase = "raw",
+  reverseRowSequence = false,
+  showRowStrandHints = false,
+  rowBaseSpacing = 1,
+  rowBasesPerRow = 80,
+  rowVisibleRowCount = 10,
+  showDnaBaseColors = false,
+  showRowWarnings = false,
+  showRowChromatogram = false,
   showAminoAcidUnitAsCodon = false,
-  searchRanges
+  aminoAcidColorMode = "family",
+  searchRanges,
+  testRegistryId
 }) {
   const isLinear = viewType === "linear";
   const isRow = viewType === "row";
@@ -173,11 +194,11 @@ export default function ThreeDGeneViewer({
 
     setRowVisibleStartRow(
       getRowIndexForPosition(start, {
-        basesPerRow: 80,
+        basesPerRow: rowBasesPerRow,
         sequenceLength: getSequenceLength(sequenceData)
       })
     );
-  }, [focusRange, isRow, sequenceData]);
+  }, [focusRange, isRow, rowBasesPerRow, sequenceData]);
 
   const handleCaretPositionChange = useCallback(
     position => {
@@ -207,6 +228,21 @@ export default function ThreeDGeneViewer({
     },
     [onSelectionChange, selectionStart]
   );
+  const handleSelectRange = useCallback(
+    (annotation, userData, event) => {
+      if (
+        Number.isFinite(Number(annotation?.start)) &&
+        Number.isFinite(Number(annotation?.end))
+      ) {
+        setSelectionRange({
+          start: Math.floor(Number(annotation.start)),
+          end: Math.floor(Number(annotation.end))
+        });
+      }
+      picking.handleClick(annotation, userData, event);
+    },
+    [picking]
+  );
 
   return (
     <div
@@ -229,16 +265,37 @@ export default function ThreeDGeneViewer({
         selectionRange={selectionRange}
         showPointerPosition={showPointerPosition}
       />
+      {selectionRange && (
+        <div
+          className="ove-three-edit-preview"
+          data-testid="ove-three-edit-preview"
+        >
+          <span>
+            Selection {Math.min(selectionRange.start, selectionRange.end) + 1}-
+            {Math.max(selectionRange.start, selectionRange.end) + 1}
+          </span>
+        </div>
+      )}
       {isRow ? (
         <ThreeRowCanvas
           key={`row:${sceneRevisionKey}`}
           sequenceData={sequenceData}
           visibleStartRow={rowVisibleStartRow}
           onVisibleStartRowChange={setRowVisibleStartRow}
+          basesPerRow={rowBasesPerRow}
+          visibleRowCount={rowVisibleRowCount}
           mode={mode}
           annotationVisibility={annotationVisibility}
+          sequenceCase={rowSequenceCase}
+          reverseRowSequence={reverseRowSequence}
+          showStrandHints={showRowStrandHints}
+          baseSpacing={rowBaseSpacing}
+          showDnaBaseColors={showDnaBaseColors}
+          showRowWarnings={showRowWarnings}
+          showRowChromatogram={showRowChromatogram}
           showAminoAcidUnitAsCodon={showAminoAcidUnitAsCodon}
-          onSelectRange={picking.handleClick}
+          aminoAcidColorMode={aminoAcidColorMode}
+          onSelectRange={handleSelectRange}
           onDoubleClickRange={picking.handleDoubleClick}
           onContextMenuRange={picking.handleContextMenu}
           onBackgroundContextMenu={picking.handleBackgroundContextMenu}
@@ -262,12 +319,13 @@ export default function ThreeDGeneViewer({
           onStatsChange={setRenderStats}
           maxDpr={maxDpr}
           preserveDrawingBuffer={preserveDrawingBuffer}
+          testRegistryId={testRegistryId || "row"}
         />
       ) : isLinear ? (
         <ThreeLinearCanvas
           key={`linear:${sceneRevisionKey}`}
           sceneModel={sceneModel}
-          onSelectRange={picking.handleClick}
+          onSelectRange={handleSelectRange}
           onDoubleClickRange={picking.handleDoubleClick}
           onContextMenuRange={picking.handleContextMenu}
           onBackgroundContextMenu={picking.handleBackgroundContextMenu}
@@ -291,12 +349,13 @@ export default function ThreeDGeneViewer({
           onStatsChange={setRenderStats}
           maxDpr={maxDpr}
           preserveDrawingBuffer={preserveDrawingBuffer}
+          testRegistryId={testRegistryId || "linear"}
         />
       ) : (
         <ThreeCircularCanvas
           key={`circular:${sceneRevisionKey}`}
           sceneModel={sceneModel}
-          onSelectRange={picking.handleClick}
+          onSelectRange={handleSelectRange}
           onDoubleClickRange={picking.handleDoubleClick}
           onContextMenuRange={picking.handleContextMenu}
           onBackgroundContextMenu={picking.handleBackgroundContextMenu}
@@ -306,6 +365,16 @@ export default function ThreeDGeneViewer({
           showGrid={showGrid}
           showBoxHelpers={showBoxHelpers}
           showLabelBoxes={showLabelBoxes}
+          circularLabelScale={circularLabelScale}
+          circularLabelLineOpacity={circularLabelLineOpacity}
+          showCircularInternalLabels={showCircularInternalLabels}
+          onlyShowCircularOverflowLabels={onlyShowCircularOverflowLabels}
+          annotationLimit={annotationLimit}
+          showCircularAxis={showCircularAxis}
+          showCircularAxisNumbers={showCircularAxisNumbers}
+          circularZoom={circularZoom}
+          circularRotation={circularRotation}
+          onCircularRotationChange={onCircularRotationChange}
           showPickRay={showPickRay}
           showPointerPosition={showPointerPosition}
           pickRay={picking.pickRay}
@@ -326,6 +395,7 @@ export default function ThreeDGeneViewer({
           onStatsChange={setRenderStats}
           maxDpr={maxDpr}
           preserveDrawingBuffer={preserveDrawingBuffer}
+          testRegistryId={testRegistryId || "circular"}
         />
       )}
     </div>

@@ -1,5 +1,46 @@
 function getCanvas() {
-  return cy.get('[data-testid="ove-three-webgl-canvas"] canvas');
+  return cy.get('[data-testid="ove-three-webgl-canvas"] canvas').first();
+}
+
+function getCircularCanvas() {
+  return cy
+    .get('[data-testid="ove-three-linked-circular-pane"]')
+    .find('[data-testid="ove-three-webgl-canvas"] canvas');
+}
+
+function triggerCircularContextMenu(x, y) {
+  return getCircularCanvas().then($canvas => {
+    const rect = $canvas[0].getBoundingClientRect();
+    const clientX = rect.left + x;
+    const clientY = rect.top + y;
+
+    expect(x, "context menu x").to.be.within(0, rect.width);
+    expect(y, "context menu y").to.be.within(0, rect.height);
+
+    return cy.window({ timeout: 10000 }).then(win => {
+      const openContextMenu = win.Cypress?.oveThreeNativeContextMenus?.circular;
+
+      if (!openContextMenu) {
+        return cy.wrap($canvas).rightclick(x, y, { force: true });
+      }
+
+      openContextMenu({
+        button: 2,
+        buttons: 2,
+        clientX,
+        clientY,
+        preventDefault: () => true,
+        stopPropagation: () => true
+      });
+    });
+  });
+}
+
+function getRegistry(win, viewId = "circular") {
+  return (
+    win.Cypress?.oveThreeTestRegistries?.[viewId] ||
+    win.Cypress?.oveThreeTestRegistry
+  );
 }
 
 function assertCanvasIsPainted() {
@@ -43,25 +84,87 @@ function getSceneRevision() {
 
 function waitForRegistry() {
   return cy.window({ timeout: 10000 }).should(win => {
-    expect(win.Cypress?.oveThreeTestRegistry).to.have.property("annotations");
+    expect(getRegistry(win)).to.have.property("annotations");
   });
 }
 
-function waitForNativeContext() {
+function findVisibleCircularRegistryEntryByType(annotationTypes) {
+  let rect;
+  const margin = 12;
+  const sortByDistanceToCenter = entries =>
+    entries.sort(
+      (a, b) =>
+        Math.hypot(a.x - rect.width / 2, a.y - rect.height / 2) -
+        Math.hypot(b.x - rect.width / 2, b.y - rect.height / 2)
+    );
+
+  return getCircularCanvas()
+    .then($canvas => {
+      rect = $canvas[0].getBoundingClientRect();
+
+      return cy.window({ timeout: 10000 }).should(win => {
+        const registry = win.Cypress?.oveThreeTestRegistries?.circular;
+        const entries = Object.values(registry?.annotations || {}).filter(
+          entry => annotationTypes.includes(entry.annotationType)
+        );
+        const visibleEntry = sortByDistanceToCenter(
+          entries.filter(
+            entry =>
+              entry.x >= margin &&
+              entry.x <= rect.width - margin &&
+              entry.y >= margin &&
+              entry.y <= rect.height - margin
+          )
+        );
+
+        expect(
+          visibleEntry[0],
+          JSON.stringify({
+            rect: {
+              width: rect.width,
+              height: rect.height
+            },
+            annotationTypes,
+            entries: entries.map(entry => ({
+              id: entry.annotationId,
+              type: entry.annotationType,
+              x: entry.x,
+              y: entry.y
+            }))
+          })
+        ).to.not.equal(undefined);
+      });
+    })
+    .then(win => {
+      const registry = win.Cypress.oveThreeTestRegistries.circular;
+      return sortByDistanceToCenter(
+        Object.values(registry.annotations).filter(
+          entry =>
+            annotationTypes.includes(entry.annotationType) &&
+            entry.x >= margin &&
+            entry.x <= rect.width - margin &&
+            entry.y >= margin &&
+            entry.y <= rect.height - margin
+        )
+      )[0];
+    });
+}
+
+function waitForNativeContext(viewId = "circular") {
   return cy.window({ timeout: 10000 }).should(win => {
-    expect(win.Cypress?.oveThreeNativeContextCanvas?.isConnected).to.eq(true);
-    expect(
-      win.Cypress.oveThreeNativeContextCanvas.getBoundingClientRect().width
-    ).to.be.greaterThan(0);
-    expect(win.Cypress.oveThreeNativeContextMenu).to.be.a("function");
+    const canvas = win.Cypress?.oveThreeNativeContextCanvases?.[viewId];
+
+    expect(canvas?.isConnected).to.eq(true);
+    expect(canvas.getBoundingClientRect().width).to.be.greaterThan(0);
+    expect(win.Cypress.oveThreeNativeContextMenus?.[viewId]).to.be.a(
+      "function"
+    );
   });
 }
 
 function waitForSelectedAnnotation(annotationId) {
   return cy.window({ timeout: 10000 }).should(win => {
-    expect(win.Cypress?.oveThreeTestRegistry?.selectedAnnotationId).to.equal(
-      annotationId
-    );
+    expect(getRegistry(win)?.selectedAnnotationId).to.equal(annotationId);
   });
 }
 
@@ -76,6 +179,18 @@ describe("ove-three demo", () => {
     cy.get('[data-testid="demo-sequence-summary"]').contains("2710 bp");
 
     getSceneRevision().then(firstRevision => {
+      cy.get('[data-testid="demo-fixture-select"]').select(
+        "large_circular_fixture"
+      );
+
+      cy.get('[data-testid="demo-sequence-summary"]').contains(
+        "12000 bp circular DNA"
+      );
+      cy.get('[data-testid="demo-rebuild-status"]').contains(
+        "large_circular_fixture"
+      );
+      getSceneRevision().should("not.equal", firstRevision);
+
       cy.get('[data-testid="demo-fixture-select"]').select(
         "small_circular_fixture"
       );
@@ -95,12 +210,10 @@ describe("ove-three demo", () => {
     getCanvas().should("be.visible");
     assertCanvasIsPainted();
     assertCanvasPixelIsDark(0.2, 0.2);
-    cy.get('[data-testid="ove-three-scene-stats"]').contains("Draw calls");
+    cy.get('[data-testid="ove-three-linked-linear-pane"]').should("be.visible");
     waitForRegistry();
     cy.window().should(win => {
-      const annotations = Object.values(
-        win.Cypress.oveThreeTestRegistry.annotations
-      );
+      const annotations = Object.values(getRegistry(win).annotations);
       const yPositions = annotations.map(annotation => annotation.y);
       expect(
         Math.max(...yPositions) - Math.min(...yPositions)
@@ -112,7 +225,7 @@ describe("ove-three demo", () => {
     cy.get('[data-testid="ove-three-row-view"]').should(
       "have.css",
       "background-color",
-      "rgb(248, 250, 252)"
+      "rgb(7, 17, 31)"
     );
     cy.get('[data-testid="ove-three-row-debug"]').contains("Rows");
     getCanvas().should("be.visible");
@@ -130,21 +243,20 @@ describe("ove-three demo", () => {
   });
 
   it("routes annotation and background interactions to the demo event log", () => {
-    waitForRegistry();
-    cy.window().then(win => {
-      const registry = win.Cypress.oveThreeTestRegistry;
-      const annotationId = registry.annotationNames["lacI promoter"];
-      const entry = registry.annotations[annotationId];
-      getCanvas().click(entry.x, entry.y, { force: true });
-    });
-    cy.get('[data-testid="demo-last-event"]').contains("click lacI-promoter");
+    findVisibleCircularRegistryEntryByType(["feature", "part", "primer"]).then(
+      entry => {
+        getCircularCanvas().click(entry.x, entry.y, { force: true });
+        cy.get('[data-testid="demo-last-event"]').contains(
+          `click ${entry.annotationId}`
+        );
+      }
+    );
     cy.get('[data-testid="demo-clear-selection"]').click();
     cy.get('[data-testid="demo-selected-annotation-card"]').should("not.exist");
     waitForRegistry();
     waitForSelectedAnnotation(null);
 
-    waitForNativeContext();
-    getCanvas().rightclick(8, 8, { force: true });
+    triggerCircularContextMenu(8, 8);
     cy.get('[data-testid="demo-last-event"]').contains(
       "right-click background"
     );
@@ -152,63 +264,42 @@ describe("ove-three demo", () => {
 
   it("routes right-clicks to feature, primer, and cutsite targets", () => {
     waitForRegistry();
-    waitForNativeContext();
+    waitForNativeContext("circular");
 
-    [
-      ["lacI promoter", "lacI-promoter"],
-      ["Example Primer 1", "medium-primer-1"],
-      ["HindIII", "medium-hindiii"]
-    ].forEach(([name, expectedId]) => {
-      cy.window().then(win => {
-        const registry = win.Cypress.oveThreeTestRegistry;
-        const annotationId = registry.annotationNames[name];
-        const entry = registry.annotations[annotationId];
-        win.Cypress.oveThreeNativeContextMenu(
-          new win.MouseEvent("contextmenu", {
-            button: 2,
-            buttons: 2,
-            clientX: entry.clientX,
-            clientY: entry.clientY,
-            bubbles: true,
-            cancelable: true
-          })
+    [["feature", "part"], ["primer"], ["cutsite"]].forEach(annotationTypes => {
+      findVisibleCircularRegistryEntryByType(annotationTypes).then(entry => {
+        triggerCircularContextMenu(entry.x, entry.y);
+        cy.get('[data-testid="demo-last-event"]').contains(
+          `right-click ${entry.annotationId}`
         );
-
-        const pick = win.Cypress.oveThreeLastNativeContextPick;
-        if (pick?.annotationId !== expectedId) {
-          throw new Error(JSON.stringify({ name, expectedId, entry, pick }));
-        }
       });
-      cy.get('[data-testid="demo-last-event"]').contains(
-        `right-click ${expectedId}`
-      );
     });
   });
 
   it("toggles biological layers from the demo panel", () => {
     waitForRegistry();
     cy.window().should(win => {
-      expect(
-        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
-      ).to.be.a("string");
+      expect(getRegistry(win).annotationNames["lacI promoter"]).to.be.a(
+        "string"
+      );
     });
 
     cy.get('[data-testid="demo-layer-feature"]').uncheck();
     cy.get('[data-testid="demo-last-event"]').contains("feature hidden");
     waitForRegistry();
     cy.window().should(win => {
-      expect(
-        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
-      ).to.equal(undefined);
+      expect(getRegistry(win).annotationNames["lacI promoter"]).to.equal(
+        undefined
+      );
     });
 
     cy.get('[data-testid="demo-layer-feature"]').check();
     cy.get('[data-testid="demo-last-event"]').contains("feature shown");
     waitForRegistry();
     cy.window().should(win => {
-      expect(
-        win.Cypress.oveThreeTestRegistry.annotationNames["lacI promoter"]
-      ).to.be.a("string");
+      expect(getRegistry(win).annotationNames["lacI promoter"]).to.be.a(
+        "string"
+      );
     });
   });
 
@@ -417,12 +508,12 @@ describe("ove-three demo", () => {
     waitForRegistry();
 
     cy.window().should(win => {
-      const labels = Object.values(win.Cypress.oveThreeTestRegistry.labels);
+      const labels = Object.values(getRegistry(win).labels);
       expect(labels.length).to.be.at.most(72);
       expect(labels.some(label => label.annotationType === "cutsite")).to.eq(
         false
       );
-      expect(win.Cypress.oveThreeTestRegistry.labelOverlapCount).to.eq(0);
+      expect(getRegistry(win).labelOverlapCount).to.eq(0);
     });
     assertCanvasIsPainted();
   });

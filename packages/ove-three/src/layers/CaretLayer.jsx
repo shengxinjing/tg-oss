@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { Line } from "@react-three/drei";
 import buildCircularCaret from "../model/buildCircularCaret";
+import { linearMapStyle } from "./LinearAnnotationLayer";
+import rowMapStyle from "./rowMapStyle";
 
 function LinearCaretLayer({ position = 0, sceneModel }) {
   if (!sceneModel) return null;
@@ -14,12 +16,12 @@ function LinearCaretLayer({ position = 0, sceneModel }) {
           [x, -0.54, 0.08],
           [x, 1.48, 0.08]
         ]}
-        color="#f8fafc"
+        color={linearMapStyle.strokeColor}
         lineWidth={2}
       />
       <mesh position={[x, 1.54, 0.09]}>
         <sphereGeometry args={[0.04, 16, 16]} />
-        <meshBasicMaterial color="#f8fafc" />
+        <meshBasicMaterial color={linearMapStyle.strokeColor} />
       </mesh>
     </group>
   );
@@ -52,12 +54,12 @@ function RowCaretLayer({ position = -1, sceneModel }) {
           [x, y - 0.32, 0.09],
           [x, y + 0.25, 0.09]
         ]}
-        color="#111827"
+        color={rowMapStyle.caretColor}
         lineWidth={2}
       />
       <mesh position={[x, y + 0.31, 0.1]}>
         <sphereGeometry args={[0.04, 16, 16]} />
-        <meshBasicMaterial color="#111827" />
+        <meshBasicMaterial color={rowMapStyle.caretColor} />
       </mesh>
     </group>
   );

@@ -2,6 +2,7 @@ import React from "react";
 import { Text } from "@react-three/drei";
 import createUserData from "../interaction/createUserData";
 import isContextPointerButton from "../interaction/isContextPointerButton";
+import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import shouldHandlePick from "../interaction/shouldHandlePick";
 
 const fallbackColors = {
@@ -16,13 +17,21 @@ const fallbackColors = {
 };
 
 export const linearMapStyle = {
-  backgroundColor: "#0b1422",
-  strokeColor: "#dbeafe",
-  textColor: "#e5eefb",
-  inverseTextColor: "#0b1422"
+  backgroundColor: "#f8fafc",
+  backboneColor: "#0075e8",
+  strokeColor: "#111827",
+  textColor: "#111827",
+  inverseTextColor: "#ffffff",
+  partColor: "#b65ce8",
+  primerColor: "#c084fc",
+  orfColor: "#67c7d8"
 };
 
 function getColor(annotation) {
+  if (annotation.annotationType === "part") return linearMapStyle.partColor;
+  if (annotation.annotationType === "primer") return linearMapStyle.primerColor;
+  if (annotation.annotationType === "orf") return linearMapStyle.orfColor;
+
   return (
     annotation.color ||
     fallbackColors[annotation.type] ||
@@ -50,6 +59,10 @@ function getLabel(annotation) {
 }
 
 function getAnnotationTextColor(annotation) {
+  if (["part", "primer"].includes(annotation.annotationType)) {
+    return linearMapStyle.partColor;
+  }
+
   return ["operator", "origin", "CDS", "tag"].includes(annotation.type)
     ? linearMapStyle.inverseTextColor
     : linearMapStyle.textColor;
@@ -100,6 +113,11 @@ function LinearAnnotation({
           onHoverRange?.(annotation, event.object.userData, event);
         }}
         onPointerOut={onHoverEnd}
+        onPointerDown={event => {
+          if (!isPrimaryPointerButton(event)) return;
+          if (!shouldHandlePick(event, event.object.userData)) return;
+          event.stopPropagation();
+        }}
         onClick={event => {
           if (!shouldHandlePick(event, event.object.userData)) return;
           event.stopPropagation();
@@ -128,7 +146,7 @@ function LinearAnnotation({
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={selected || hovered ? 1 : 0.96}
+          opacity={selected || hovered ? 1 : 0.92}
         />
       </mesh>
       <Text
@@ -138,6 +156,12 @@ function LinearAnnotation({
         anchorX="left"
         anchorY="middle"
         maxWidth={Math.max(segment.width - 0.08, 0.1)}
+        outlineColor={
+          ["part", "primer"].includes(annotation.annotationType)
+            ? linearMapStyle.backgroundColor
+            : linearMapStyle.strokeColor
+        }
+        outlineWidth={0.01}
         whiteSpace="nowrap"
       >
         {getLabel(annotation)}
