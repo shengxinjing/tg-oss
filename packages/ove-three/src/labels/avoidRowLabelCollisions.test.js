@@ -38,6 +38,20 @@ describe("avoidRowLabelCollisions", () => {
     );
 
     assert.equal(annotation.label, "VeryLongPromoterName");
-    assert.equal(annotation.displayLabel, "V...");
+    assert.equal(annotation.fullLabel, "VeryLongPromoterName");
+    assert.equal(annotation.displayLabel, "Ver…");
+    assert.equal(annotation.labelFits, false);
+    assert.equal(annotation.hideLabel, false);
+  });
+
+  it("hides the inline label when the segment is too narrow to read", () => {
+    const [annotation] = avoidRowLabelCollisions(
+      [{ id: "f", name: "lacZ", rowIndex: 0, start: 1, end: 1, width: 1 }],
+      { baseWidth: 1 }
+    );
+
+    assert.equal(annotation.hideLabel, true);
+    assert.equal(annotation.displayLabel, "");
+    assert.equal(annotation.fullLabel, "lacZ");
   });
 });

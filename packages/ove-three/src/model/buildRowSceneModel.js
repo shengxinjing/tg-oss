@@ -1,6 +1,8 @@
 import avoidRowLabelCollisions from "../labels/avoidRowLabelCollisions";
 import normalizeAnnotations from "./normalizeAnnotations";
 import splitCircularRange from "./splitCircularRange";
+import estimateRowHeight from "./estimateRowHeight";
+import getAminoAcidColor from "./getAminoAcidColor";
 import { getAminoAcidFromSequenceTriplet } from "@teselagen/sequence-utils";
 
 function toPositiveInteger(value, fallback) {
@@ -71,19 +73,6 @@ function buildBaseColors(sequence) {
     index,
     color: dnaBaseColors[String(base).toLowerCase()] || "#94a3b8"
   }));
-}
-
-function getAminoAcidColor(aminoAcid, colorMode) {
-  if (colorMode !== "hydrophobicity") {
-    return aminoAcid?.colorByFamily || "#22d3ee";
-  }
-
-  const value = aminoAcid?.value || "";
-  if ("AVILMFWY".includes(value)) return "#fb923c";
-  if ("STNQCGP".includes(value)) return "#38bdf8";
-  if ("KRH".includes(value)) return "#a78bfa";
-  if ("DE".includes(value)) return "#f87171";
-  return "#94a3b8";
 }
 
 function buildAxisTicks(start, end, basesPerRow) {
@@ -553,6 +542,18 @@ export default function buildRowSceneModel(
     baseWidth: resolvedBaseWidth,
     baseSpacing: resolvedBaseSpacing,
     rowHeight,
+    estimatedRowHeight: estimateRowHeight({
+      showComplement: mode !== "protein",
+      showTranslations: mode === "protein" || showAminoAcidUnitAsCodon,
+      showStrandHints,
+      annotationLanes: [
+        sequenceData.features,
+        sequenceData.parts,
+        sequenceData.primers,
+        sequenceData.cutsites,
+        sequenceData.orfs
+      ].filter(group => Array.isArray(group) && group.length).length
+    }),
     rowHeightPx: toPositiveInteger(rowHeightPx, 72),
     sequenceCase,
     reverseRowSequence,

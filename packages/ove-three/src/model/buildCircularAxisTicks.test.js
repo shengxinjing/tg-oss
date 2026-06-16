@@ -21,4 +21,31 @@ describe("buildCircularAxisTicks", () => {
     assert(ticks.labels.every(label => label.rotation >= -Math.PI));
     assert(ticks.labels.every(label => label.rotation <= Math.PI));
   });
+
+  it("supports density-driven step overrides", () => {
+    const fine = buildCircularAxisTicks({
+      sequenceLength: 1000,
+      majorStep: 10,
+      minorStep: 1
+    });
+    assert(fine.major.length === 100);
+  });
+
+  it("limits ticks to a visible range when provided", () => {
+    const full = buildCircularAxisTicks({
+      sequenceLength: 1000,
+      majorStep: 10,
+      minorStep: 1
+    });
+    const windowed = buildCircularAxisTicks({
+      sequenceLength: 1000,
+      majorStep: 10,
+      minorStep: 1,
+      range: { start: 100, end: 150, wraps: false }
+    });
+    assert(windowed.minor.length < full.minor.length);
+    assert(
+      windowed.minor.every(tick => tick.position >= 100 && tick.position <= 150)
+    );
+  });
 });

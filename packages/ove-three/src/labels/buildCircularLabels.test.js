@@ -37,6 +37,20 @@ describe("buildCircularLabels", () => {
     assert.equal(result.visible[0].leaderEnd.length, 3);
   });
 
+  it("truncates long label text but keeps the full text", () => {
+    const result = buildCircularLabels({
+      sceneModel: {
+        annotations: [makeAnnotation("a-very-long-feature-name-that-overflows")]
+      },
+      maxLabelChars: 12
+    });
+
+    const label = result.visible[0];
+    assert.equal(label.text.length, 12);
+    assert(label.text.endsWith("…"));
+    assert.equal(label.fullText, "a-very-long-feature-name-that-overflows");
+  });
+
   it("keeps selected labels ahead of dense overlapping labels", () => {
     const annotations = [
       makeAnnotation("first", { name: "first-label" }),

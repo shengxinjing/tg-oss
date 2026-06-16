@@ -72,6 +72,13 @@ function RowAnnotation({
   const color = getColor(annotation);
   const selected = selectedAnnotationId === annotation.id;
   const hovered = hoveredAnnotationId === annotation.id;
+  // hover reveals the full (untruncated) name; otherwise show the
+  // width-aware truncated label, and hide it entirely when the segment is too
+  // narrow to read (matches SVG OVE's onlyShowLabelsThatDoNotFit behavior).
+  const labelText = hovered
+    ? annotation.fullLabel || annotation.label
+    : annotation.displayLabel;
+  const showLabel = Boolean(labelText) && (hovered || !annotation.hideLabel);
   const y = getRowY(row, sceneModel) + 0.34 + annotation.stack * 0.15;
   const userData = createUserData({
     kind: annotation.annotationType,
@@ -137,17 +144,21 @@ function RowAnnotation({
           opacity={selected || hovered ? 1 : 0.95}
         />
       </mesh>
-      <SafeText
-        position={[-annotation.width / 2 + 0.025, 0.006, 0.03]}
-        color={getAnnotationTextColor(annotation)}
-        fontSize={0.078}
-        anchorX="left"
-        anchorY="middle"
-        maxWidth={Math.max(annotation.width - 0.05, 0.05)}
-        whiteSpace="nowrap"
-      >
-        {annotation.displayLabel}
-      </SafeText>
+      {showLabel && (
+        <SafeText
+          position={[-annotation.width / 2 + 0.025, 0.006, 0.03]}
+          color={getAnnotationTextColor(annotation)}
+          fontSize={0.078}
+          anchorX="left"
+          anchorY="middle"
+          maxWidth={
+            hovered ? undefined : Math.max(annotation.width - 0.05, 0.05)
+          }
+          whiteSpace="nowrap"
+        >
+          {labelText}
+        </SafeText>
+      )}
       {annotation.annotationType === "orf" && (
         <mesh
           position={[

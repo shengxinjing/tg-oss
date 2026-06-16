@@ -1,5 +1,6 @@
 import avoidCircularLabelCollisions from "./avoidCircularLabelCollisions";
 import measureText from "./measureText";
+import truncateLabel from "./truncateLabel";
 
 const labelableTypes = new Set(["feature", "part", "primer", "cutsite", "orf"]);
 const fallbackColors = {
@@ -43,6 +44,7 @@ function buildLabel(
     scale,
     fontSize,
     fontSizeWorld,
+    maxLabelChars,
     selectedAnnotationId,
     hoveredAnnotationId
   }
@@ -51,7 +53,8 @@ function buildLabel(
   const position = getPoint(angle, labelRadius);
   const leaderStart = getPoint(angle, leaderRadius, 0.24);
   const leaderEnd = getPoint(angle, labelRadius - 0.18, 0.24);
-  const text = getText(annotation);
+  const fullText = getText(annotation);
+  const text = truncateLabel(fullText, maxLabelChars);
   const size = measureText(text, { fontSize });
   const arcWidth = Math.max(0, segment.totalAngle * leaderRadius * scale);
 
@@ -60,6 +63,7 @@ function buildLabel(
     annotationId: annotation.id,
     annotationType: annotation.annotationType,
     text,
+    fullText,
     color:
       annotation.color ||
       fallbackColors[annotation.annotationType] ||
@@ -99,6 +103,7 @@ export default function buildCircularLabels({
   fontSize = 12,
   denseLabelThreshold = 120,
   maxVisibleLabels = 72,
+  maxLabelChars = 18,
   onlyShowOverflowLabels = false,
   selectedAnnotationId,
   hoveredAnnotationId
@@ -122,6 +127,7 @@ export default function buildCircularLabels({
           scale,
           fontSize: fontSize * safeLabelScale,
           fontSizeWorld,
+          maxLabelChars,
           selectedAnnotationId,
           hoveredAnnotationId
         })

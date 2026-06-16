@@ -9,6 +9,7 @@ import ThreeCircularCanvas from "./renderers/ThreeCircularCanvas";
 import ThreeLinearCanvas from "./renderers/ThreeLinearCanvas";
 import ThreeRowCanvas from "./renderers/ThreeRowCanvas";
 import buildCircularSceneModel from "./model/buildCircularSceneModel";
+import buildCircularAuxLanes from "./model/buildCircularAuxLanes";
 import buildLinearSceneModel from "./model/buildLinearSceneModel";
 import { getRowIndexForPosition } from "./model/buildRowSceneModel";
 import PickingDebugOverlay from "./debug/PickingDebugOverlay";
@@ -89,6 +90,7 @@ export default function ThreeDGeneViewer({
   focusedAnnotationId,
   focusRange,
   linearBaseWidth,
+  linearZoomFactor = 1,
   showCircularAxis = true,
   showCircularAxisNumbers = true,
   circularZoom = 1,
@@ -108,7 +110,9 @@ export default function ThreeDGeneViewer({
   showAminoAcidUnitAsCodon = false,
   aminoAcidColorMode = "family",
   searchRanges,
-  testRegistryId
+  editRanges,
+  testRegistryId,
+  theme = "light"
 }) {
   const isLinear = viewType === "linear";
   const isRow = viewType === "row";
@@ -132,6 +136,14 @@ export default function ThreeDGeneViewer({
     resolvedLinearBaseWidth,
     sequenceData
   ]);
+  const circularAuxLanes = useMemo(
+    () =>
+      buildCircularAuxLanes({
+        sequenceData,
+        sequenceLength: getSequenceLength(sequenceData)
+      }),
+    [sequenceData]
+  );
   const viewerRef = useRef(null);
   const fixtureName =
     sequenceData?.name || sceneModel?.name || "Untitled sequence";
@@ -278,7 +290,7 @@ export default function ThreeDGeneViewer({
       )}
       {isRow ? (
         <ThreeRowCanvas
-          key={`row:${sceneRevisionKey}`}
+          key={`row:${theme}:${sceneRevisionKey}`}
           sequenceData={sequenceData}
           visibleStartRow={rowVisibleStartRow}
           onVisibleStartRowChange={setRowVisibleStartRow}
@@ -323,8 +335,9 @@ export default function ThreeDGeneViewer({
         />
       ) : isLinear ? (
         <ThreeLinearCanvas
-          key={`linear:${sceneRevisionKey}`}
+          key={`linear:${theme}:${sceneRevisionKey}`}
           sceneModel={sceneModel}
+          linearZoomFactor={linearZoomFactor}
           onSelectRange={handleSelectRange}
           onDoubleClickRange={picking.handleDoubleClick}
           onContextMenuRange={picking.handleContextMenu}
@@ -353,8 +366,11 @@ export default function ThreeDGeneViewer({
         />
       ) : (
         <ThreeCircularCanvas
-          key={`circular:${sceneRevisionKey}`}
+          key={`circular:${theme}:${sceneRevisionKey}`}
           sceneModel={sceneModel}
+          sequence={sequenceData?.sequence}
+          edits={editRanges}
+          auxLanes={circularAuxLanes}
           onSelectRange={handleSelectRange}
           onDoubleClickRange={picking.handleDoubleClick}
           onContextMenuRange={picking.handleContextMenu}

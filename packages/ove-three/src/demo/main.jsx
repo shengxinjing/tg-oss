@@ -328,6 +328,18 @@ function DemoApp() {
     useState(false);
   const [linkedSecondaryViewType, setLinkedSecondaryViewType] = useState("row");
   const [showPerformanceStats, setShowPerformanceStats] = useState(true);
+  // Locked to dark while features are in development; toggle UI hidden via CSS.
+  const [theme, setTheme] = useState("dark");
+  useEffect(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("ove-three-theme", theme);
+    }
+  }, [theme]);
+  // Set before children render so the WebGL canvases read the active theme's
+  // CSS variables on first paint and on every toggle.
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = theme;
+  }
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidePanelCollapsed, setIsSidePanelCollapsed] = useState(false);
   const [closedEditorPanel, setClosedEditorPanel] = useState(null);
@@ -926,7 +938,7 @@ function DemoApp() {
     0.018,
     44 / Math.max(sequenceData.sequence.length, 1)
   );
-  const resolvedLinearBaseWidth = baseLinearBaseWidth * linearZoom;
+  const resolvedLinearBaseWidth = baseLinearBaseWidth;
   const linearFitSummary = `Linear fit ${Math.round(sequenceData.sequence.length * resolvedLinearBaseWidth * 100) / 100} world units`;
   const linearControlSummary = `Zoom ${linearZoom.toFixed(1)}x · limit ${Math.max(1, Number(annotationLimit) || 1)}`;
   const rowCaseLabel =
@@ -973,6 +985,7 @@ function DemoApp() {
   const advancedTools = getAdvancedTools();
   const versionHistoryRows = buildVersionHistoryRows(sequenceHistory);
   const sharedViewerProps = {
+    theme,
     sequenceData: renderSequenceData,
     onSelectRange: handleSelectRange,
     onDoubleClickRange: annotation =>
@@ -1000,6 +1013,7 @@ function DemoApp() {
     circularRotation,
     onCircularRotationChange: setCircularRotation,
     linearBaseWidth: resolvedLinearBaseWidth,
+    linearZoomFactor: linearZoom,
     rowSequenceCase,
     reverseRowSequence,
     showRowStrandHints,
@@ -1076,6 +1090,43 @@ function DemoApp() {
           ))}
         </div>
         <div className="ove-three-editor__panel-actions">
+          <button
+            data-testid="ove-three-theme-toggle"
+            className="ove-three-theme-toggle"
+            type="button"
+            title="Toggle light / dark theme"
+            onClick={() =>
+              setTheme(current => (current === "dark" ? "light" : "dark"))
+            }
+          >
+            {theme === "dark" ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19" />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+              </svg>
+            )}
+            {theme === "dark" ? "Light" : "Dark"}
+          </button>
           <button
             data-testid="ove-three-fullscreen-toggle"
             type="button"
@@ -1166,10 +1217,23 @@ function DemoApp() {
               <div className="ove-three-editor__circular-controls">
                 <label>
                   <span>Zoom</span>
+                  <button
+                    type="button"
+                    className="ove-three-editor__stepper"
+                    data-testid="demo-circular-zoom-dec"
+                    aria-label="Zoom out"
+                    onClick={() =>
+                      setCircularZoom(z =>
+                        Math.max(1, Math.round((z - 1) * 10) / 10)
+                      )
+                    }
+                  >
+                    −
+                  </button>
                   <input
                     data-testid="demo-circular-zoom"
-                    max="2.4"
-                    min="0.7"
+                    max="40"
+                    min="1"
                     onChange={event =>
                       setCircularZoom(Number(event.target.value))
                     }
@@ -1180,9 +1244,33 @@ function DemoApp() {
                     type="range"
                     value={circularZoom}
                   />
+                  <button
+                    type="button"
+                    className="ove-three-editor__stepper"
+                    data-testid="demo-circular-zoom-inc"
+                    aria-label="Zoom in"
+                    onClick={() =>
+                      setCircularZoom(z =>
+                        Math.min(40, Math.round((z + 1) * 10) / 10)
+                      )
+                    }
+                  >
+                    +
+                  </button>
                 </label>
                 <label>
                   <span>Rotate</span>
+                  <button
+                    type="button"
+                    className="ove-three-editor__stepper"
+                    data-testid="demo-circular-rotation-dec"
+                    aria-label="Rotate counter-clockwise"
+                    onClick={() =>
+                      setCircularRotation(r => (Math.round(r) - 15 + 360) % 360)
+                    }
+                  >
+                    −
+                  </button>
                   <input
                     data-testid="demo-circular-rotation"
                     max="359"
@@ -1197,6 +1285,17 @@ function DemoApp() {
                     type="range"
                     value={circularRotation}
                   />
+                  <button
+                    type="button"
+                    className="ove-three-editor__stepper"
+                    data-testid="demo-circular-rotation-inc"
+                    aria-label="Rotate clockwise"
+                    onClick={() =>
+                      setCircularRotation(r => (Math.round(r) + 15) % 360)
+                    }
+                  >
+                    +
+                  </button>
                 </label>
                 <span data-testid="demo-circular-control-summary">
                   {circularControlSummary}
@@ -1243,13 +1342,13 @@ function DemoApp() {
                   <span>Linear zoom</span>
                   <input
                     data-testid="demo-linear-zoom"
-                    max="2.4"
-                    min="0.7"
+                    max="12"
+                    min="1"
                     onChange={event =>
                       setLinearZoom(Number(event.target.value))
                     }
                     onInput={event => setLinearZoom(Number(event.target.value))}
-                    step="0.1"
+                    step="0.5"
                     type="range"
                     value={linearZoom}
                   />
@@ -1360,6 +1459,7 @@ function DemoApp() {
                   >
                     <option value="family">Family</option>
                     <option value="hydrophobicity">Hydrophobicity</option>
+                    <option value="residue">By residue</option>
                   </select>
                 </label>
                 <button

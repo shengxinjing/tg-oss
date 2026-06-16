@@ -1,5 +1,6 @@
 import mapRangeToLinearX from "./mapRangeToLinearX";
 import normalizeAnnotations from "./normalizeAnnotations";
+import assignLinearLanes from "./assignLinearLanes";
 import splitCircularRange from "./splitCircularRange";
 
 function toPositiveInteger(value, fallback) {
@@ -67,7 +68,7 @@ function buildAnnotations(
   annotations,
   { annotationType, sequenceLength, circular, baseWidth }
 ) {
-  return normalizeAnnotations(annotations, { annotationType }).map(
+  const built = normalizeAnnotations(annotations, { annotationType }).map(
     annotation => {
       const segments = splitLinearRange(annotation, {
         circular,
@@ -90,6 +91,8 @@ function buildAnnotations(
       };
     }
   );
+
+  return assignLinearLanes(built);
 }
 
 export default function buildLinearSceneModel(

@@ -5,6 +5,8 @@ import createTickGeometry from "../geometry/createTickGeometry";
 import createUserData from "../interaction/createUserData";
 import isContextPointerButton from "../interaction/isContextPointerButton";
 import shouldHandlePick from "../interaction/shouldHandlePick";
+import circularMapStyle from "../theme/circularMapStyle";
+import positionCutsites from "../model/positionCutsites";
 
 function getCutsites(sceneModel = {}) {
   return (sceneModel.annotations || []).filter(
@@ -36,6 +38,7 @@ function CutsiteTick({
   index,
   cutsiteCount,
   radius,
+  stack = 0,
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
@@ -53,7 +56,7 @@ function CutsiteTick({
       }),
     [angle, radius]
   );
-  const labelRadius = radius + 0.48;
+  const labelRadius = radius + 0.48 + stack * 0.42;
   const x = Math.cos(angle - Math.PI / 2) * labelRadius;
   const z = Math.sin(angle - Math.PI / 2) * labelRadius;
   const color = annotation.color || "#fb923c";
@@ -107,11 +110,11 @@ function CutsiteTick({
       {labelStyle.showLabel && (
         <Billboard position={[x, 0.16, z]}>
           <Text
-            color="#fed7aa"
+            color={circularMapStyle.cutsiteText}
             fontSize={labelStyle.fontSize}
             anchorX="center"
             anchorY="middle"
-            outlineColor="#07111f"
+            outlineColor={circularMapStyle.textOutline}
             outlineWidth={Math.min(0.01, labelStyle.fontSize * 0.09)}
           >
             {getLabel(annotation)}
@@ -132,26 +135,36 @@ export default function CircularCutsiteLayer({
   onHoverEnd
 }) {
   const cutsites = getCutsites(sceneModel);
+  const positioned = positionCutsites(
+    cutsites.flatMap((annotation, annotationIndex) =>
+      annotation.segments.map((segment, segmentIndex) => ({
+        annotation,
+        segment,
+        annotationIndex,
+        segmentIndex,
+        angle: getSegmentAngle(segment)
+      }))
+    )
+  );
 
   return (
     <group userData={{ kind: "cutsites" }}>
-      {cutsites.flatMap((annotation, annotationIndex) =>
-        annotation.segments.map((segment, segmentIndex) => (
-          <CutsiteTick
-            key={`${annotation.id}-${segment.start}-${segment.end}-${segmentIndex}`}
-            annotation={annotation}
-            segment={segment}
-            index={annotationIndex}
-            cutsiteCount={cutsites.length}
-            radius={radius}
-            onSelectRange={onSelectRange}
-            onDoubleClickRange={onDoubleClickRange}
-            onContextMenuRange={onContextMenuRange}
-            onHoverRange={onHoverRange}
-            onHoverEnd={onHoverEnd}
-          />
-        ))
-      )}
+      {positioned.map(item => (
+        <CutsiteTick
+          key={`${item.annotation.id}-${item.segment.start}-${item.segment.end}-${item.segmentIndex}`}
+          annotation={item.annotation}
+          segment={item.segment}
+          index={item.annotationIndex}
+          cutsiteCount={cutsites.length}
+          radius={radius}
+          stack={item.stack}
+          onSelectRange={onSelectRange}
+          onDoubleClickRange={onDoubleClickRange}
+          onContextMenuRange={onContextMenuRange}
+          onHoverRange={onHoverRange}
+          onHoverEnd={onHoverEnd}
+        />
+      ))}
     </group>
   );
 }

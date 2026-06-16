@@ -11,11 +11,11 @@ function getLabel(annotation) {
 
 export function getLinearCutsiteLayout(index = 0) {
   return {
-    y: 3.65 + (index % 3) * 0.52,
-    tickHeight: 0.72,
-    tickWidth: 0.055,
-    fontSize: 0.22,
-    labelOffsetY: 0.47
+    y: 3.45 + (index % 3) * 0.66,
+    tickHeight: 1.0,
+    tickWidth: 0.06,
+    fontSize: 0.4,
+    labelOffsetY: 0.66
   };
 }
 

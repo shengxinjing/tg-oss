@@ -147,8 +147,9 @@ function AnnotationRibbon({
       <meshStandardMaterial
         color={color}
         emissive={color}
-        emissiveIntensity={selected || hovered ? 0.55 : 0.22}
-        roughness={0.42}
+        emissiveIntensity={selected || hovered ? 0.42 : 0.12}
+        roughness={0.5}
+        metalness={0.05}
         side={THREE.DoubleSide}
       />
     </mesh>

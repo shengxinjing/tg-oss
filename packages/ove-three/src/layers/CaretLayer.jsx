@@ -3,6 +3,7 @@ import { Line } from "@react-three/drei";
 import buildCircularCaret from "../model/buildCircularCaret";
 import { linearMapStyle } from "./LinearAnnotationLayer";
 import rowMapStyle from "./rowMapStyle";
+import circularMapStyle from "../theme/circularMapStyle";
 
 function LinearCaretLayer({ position = 0, sceneModel }) {
   if (!sceneModel) return null;
@@ -81,12 +82,12 @@ function CircularCaretLayer({
     <group userData={{ kind: "caret", position: caret.position }}>
       <Line
         points={[caret.lineStart, caret.lineEnd]}
-        color="#f8fafc"
+        color={circularMapStyle.caret}
         lineWidth={3}
       />
       <mesh position={caret.handlePosition}>
         <sphereGeometry args={[0.045, 16, 16]} />
-        <meshBasicMaterial color="#f8fafc" />
+        <meshBasicMaterial color={circularMapStyle.caret} />
       </mesh>
     </group>
   );

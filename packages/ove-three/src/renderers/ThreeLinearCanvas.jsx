@@ -16,6 +16,9 @@ import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointerToLinearPosition from "../interaction/mapPointerToLinearPosition";
 import getCanvasDpr from "./getCanvasDpr";
 import getLinearCameraZoom from "./getLinearCameraZoom";
+import getLinearScrollX from "./getLinearScrollX";
+import getLinearLodFlags from "../lod/getLinearLodFlags";
+import LinearConsensusLayer from "../layers/LinearConsensusLayer";
 import {
   buildAnnotationRegistryEntries,
   clearTestRegistry,
@@ -24,7 +27,7 @@ import {
   publishTestRegistry
 } from "../debug/testRegistry";
 
-const LINEAR_CAMERA_TARGET_Y = -4.5;
+const LINEAR_CAMERA_TARGET_Y = 1.4;
 
 function canPublishTestRegistry() {
   return typeof window !== "undefined" && !!window.Cypress;
@@ -83,19 +86,45 @@ function TestRegistryPublisher({
   return null;
 }
 
-function LinearCameraFrame({ sceneModel }) {
+function LinearCameraFrame({
+  sceneModel,
+  linearZoomFactor = 1,
+  focusPosition
+}) {
   const { camera, size } = useThree();
   const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
+  const zoomFactor = Math.max(1, Number(linearZoomFactor) || 1);
 
   useLayoutEffect(() => {
-    camera.position.set(0, LINEAR_CAMERA_TARGET_Y, 20);
-    camera.zoom = getLinearCameraZoom({
+    // Fit the model at factor 1; higher factors zoom in (the model overflows)
+    // and we scroll horizontally to the focus position.
+    const fitZoom = getLinearCameraZoom({
       canvasWidth: size.width,
       canvasHeight: size.height,
       modelWidth
     });
+    camera.zoom = fitZoom * zoomFactor;
+    const scrollX = getLinearScrollX({
+      position: Number.isFinite(focusPosition)
+        ? focusPosition
+        : sceneModel.sequenceLength / 2,
+      baseWidth: sceneModel.baseWidth,
+      modelWidth,
+      cameraZoom: camera.zoom,
+      canvasWidth: size.width
+    });
+    camera.position.set(scrollX, LINEAR_CAMERA_TARGET_Y, 20);
     camera.updateProjectionMatrix();
-  }, [camera, modelWidth, size.height, size.width]);
+  }, [
+    camera,
+    modelWidth,
+    size.height,
+    size.width,
+    zoomFactor,
+    focusPosition,
+    sceneModel.baseWidth,
+    sceneModel.sequenceLength
+  ]);
 
   return null;
 }
@@ -208,26 +237,26 @@ function LinearPointerHitArea({
 
 function AxisTicks({ sceneModel }) {
   const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
-  const axisY = -0.56;
+  const axisY = -0.85;
 
   return (
     <group userData={{ kind: "linear-axis" }}>
-      <mesh position={[0, axisY - 0.17, 0.025]}>
-        <planeGeometry args={[modelWidth, 0.025]} />
+      <mesh position={[0, axisY - 0.28, 0.025]}>
+        <planeGeometry args={[modelWidth, 0.04]} />
         <meshBasicMaterial color={linearMapStyle.strokeColor} />
       </mesh>
       {sceneModel.axisTicks.map(tick => {
         const x = tick.position * sceneModel.baseWidth - modelWidth / 2;
         return (
           <group key={tick.position} position={[x, axisY, 0.03]}>
-            <mesh>
-              <planeGeometry args={[0.018, 0.34]} />
+            <mesh position={[0, -0.18, 0]}>
+              <planeGeometry args={[0.03, 0.52]} />
               <meshBasicMaterial color={linearMapStyle.strokeColor} />
             </mesh>
             <Text
-              position={[0.04, -0.34, 0.02]}
+              position={[0.07, -0.62, 0.02]}
               color={linearMapStyle.textColor}
-              fontSize={0.2}
+              fontSize={0.4}
               anchorX="left"
               anchorY="middle"
             >
@@ -263,8 +292,21 @@ function LinearScene({
   showSceneStats,
   fixtureName,
   parentRef,
-  onStatsChange
+  onStatsChange,
+  linearZoomFactor,
+  consensus = []
 }) {
+  const { size } = useThree();
+  const modelWidth = sceneModel.sequenceLength * sceneModel.baseWidth;
+  const fitZoom = getLinearCameraZoom({
+    canvasWidth: size.width,
+    canvasHeight: size.height,
+    modelWidth
+  });
+  const pixelsPerBase =
+    sceneModel.baseWidth * fitZoom * Math.max(1, Number(linearZoomFactor) || 1);
+  const lodFlags = getLinearLodFlags({ pixelsPerBase });
+
   return (
     <>
       <color attach="background" args={[linearMapStyle.backgroundColor]} />
@@ -274,7 +316,15 @@ function LinearScene({
         onContextMenuRange={onContextMenuRange}
         onBackgroundContextMenu={onBackgroundContextMenu}
       />
-      <LinearCameraFrame sceneModel={sceneModel} />
+      <LinearCameraFrame
+        sceneModel={sceneModel}
+        linearZoomFactor={linearZoomFactor}
+        focusPosition={
+          selectionRange
+            ? (selectionRange.start + selectionRange.end) / 2
+            : caretPosition
+        }
+      />
       <LinearPointerHitArea
         sceneModel={sceneModel}
         mode={mode}
@@ -288,7 +338,12 @@ function LinearScene({
         showPointerPosition={showPointerPosition}
       />
       <AxisTicks sceneModel={sceneModel} />
-      <LinearSequenceLayer sceneModel={sceneModel} />
+      <LinearSequenceLayer sceneModel={sceneModel} lodFlags={lodFlags} />
+      <LinearConsensusLayer
+        consensus={consensus}
+        baseWidth={sceneModel.baseWidth}
+        sequenceLength={sceneModel.sequenceLength}
+      />
       <SelectionLayer
         variant="linear"
         selectionRange={selectionRange}
@@ -347,6 +402,8 @@ export default function ThreeLinearCanvas({
   hoveredAnnotationId,
   caretPosition = 0,
   selectionRange,
+  linearZoomFactor = 1,
+  consensus = [],
   mode = "dna",
   onCaretPositionChange,
   onPointerPositionChange,
@@ -405,6 +462,8 @@ export default function ThreeLinearCanvas({
           fixtureName={fixtureName}
           parentRef={parentRef}
           onStatsChange={onStatsChange}
+          linearZoomFactor={linearZoomFactor}
+          consensus={consensus}
         />
       </Suspense>
     </Canvas>

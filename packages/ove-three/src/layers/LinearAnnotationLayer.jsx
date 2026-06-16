@@ -4,6 +4,7 @@ import createUserData from "../interaction/createUserData";
 import isContextPointerButton from "../interaction/isContextPointerButton";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import shouldHandlePick from "../interaction/shouldHandlePick";
+import { cssVar } from "../theme/cssVars";
 
 const fallbackColors = {
   promoter: "#8b5cf6",
@@ -17,10 +18,18 @@ const fallbackColors = {
 };
 
 export const linearMapStyle = {
-  backgroundColor: "#f8fafc",
-  backboneColor: "#0075e8",
-  strokeColor: "#111827",
-  textColor: "#111827",
+  get backgroundColor() {
+    return cssVar("--o3-bg-0", "#f8fafc");
+  },
+  get backboneColor() {
+    return cssVar("--o3-map-backbone", "#0075e8");
+  },
+  get strokeColor() {
+    return cssVar("--o3-text-1", "#111827");
+  },
+  get textColor() {
+    return cssVar("--o3-text-1", "#111827");
+  },
   inverseTextColor: "#ffffff",
   partColor: "#b65ce8",
   primerColor: "#c084fc",
@@ -40,17 +49,17 @@ function getColor(annotation) {
   );
 }
 
-export function getLinearAnnotationLayout(annotationType, index) {
+export function getLinearAnnotationLayout(annotationType, lane = 0) {
   const layoutByType = {
-    feature: { y: 0.95, height: 0.46, fontSize: 0.28 },
-    part: { y: 1.72, height: 0.3, fontSize: 0.23 },
-    primer: { y: 2.45, height: 0.28, fontSize: 0.22 },
-    orf: { y: -1.18, height: 0.24, fontSize: 0.18 }
+    feature: { y: 1.05, height: 0.78, fontSize: 0.52 },
+    part: { y: 2.05, height: 0.56, fontSize: 0.44 },
+    primer: { y: 2.95, height: 0.52, fontSize: 0.42 },
+    orf: { y: -1.95, height: 0.46, fontSize: 0.38 }
   };
   const layout = layoutByType[annotationType] || layoutByType.feature;
   return {
     ...layout,
-    y: layout.y + (index % 3) * 0.48
+    y: layout.y + lane * 0.72
   };
 }
 
@@ -72,7 +81,6 @@ function LinearAnnotation({
   annotation,
   segment,
   modelWidth,
-  index,
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
@@ -82,7 +90,10 @@ function LinearAnnotation({
   hoveredAnnotationId
 }) {
   const x = segment.startX + segment.width / 2 - modelWidth / 2;
-  const layout = getLinearAnnotationLayout(annotation.annotationType, index);
+  const layout = getLinearAnnotationLayout(
+    annotation.annotationType,
+    annotation.lane || 0
+  );
   const color = getColor(annotation);
   const selected = selectedAnnotationId === annotation.id;
   const hovered = hoveredAnnotationId === annotation.id;

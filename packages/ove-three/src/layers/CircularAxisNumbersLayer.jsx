@@ -1,14 +1,17 @@
 import React, { useMemo } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import buildCircularAxisTicks from "../model/buildCircularAxisTicks";
+import circularMapStyle from "../theme/circularMapStyle";
 
 export default function CircularAxisNumbersLayer({
   sequenceLength,
-  radius = 2.92
+  radius = 2.92,
+  majorStep,
+  range
 }) {
   const ticks = useMemo(
-    () => buildCircularAxisTicks({ sequenceLength }),
-    [sequenceLength]
+    () => buildCircularAxisTicks({ sequenceLength, majorStep, range }),
+    [sequenceLength, majorStep, range]
   );
 
   return (
@@ -20,11 +23,11 @@ export default function CircularAxisNumbersLayer({
         return (
           <Billboard key={tick.position} position={[x, 0.08, z]}>
             <Text
-              color="#c8d7ea"
+              color={circularMapStyle.axisNumber}
               fontSize={0.13}
               anchorX="center"
               anchorY="middle"
-              outlineColor="#07111f"
+              outlineColor={circularMapStyle.textOutline}
               outlineWidth={0.012}
             >
               {tick.label}

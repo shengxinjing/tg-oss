@@ -1,11 +1,7 @@
+import resolveRowLabel from "./resolveRowLabel";
+
 function getLabel(annotation = {}) {
   return annotation.name || annotation.label || annotation.id || "";
-}
-
-function truncateLabel(label, maxChars) {
-  if (!label || label.length <= maxChars) return label;
-  if (maxChars <= 3) return label.slice(0, maxChars);
-  return `${label.slice(0, maxChars - 3)}...`;
 }
 
 function getPriority(annotationType) {
@@ -49,16 +45,19 @@ export default function avoidRowLabelCollisions(
       occupiedEnds.set(annotation.rowIndex, rowStacks);
 
       const label = getLabel(annotation);
-      const maxChars = Math.max(
-        1,
-        Math.floor((annotation.width || 0) / baseWidth)
-      );
+      const resolved = resolveRowLabel(label, {
+        width: annotation.width || 0,
+        baseWidth
+      });
 
       return {
         ...annotation,
         stack,
         label,
-        displayLabel: truncateLabel(label, maxChars)
+        fullLabel: resolved.fullLabel,
+        labelFits: resolved.fits,
+        hideLabel: resolved.hideLabel,
+        displayLabel: resolved.displayLabel
       };
     });
 }

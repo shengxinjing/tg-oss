@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import buildCircularAxisTicks from "../model/buildCircularAxisTicks";
+import circularMapStyle from "../theme/circularMapStyle";
 
 function Tick({ angle, radius, length, width, color }) {
   const tickRadius = radius + length / 2;
@@ -14,10 +15,17 @@ function Tick({ angle, radius, length, width, color }) {
   );
 }
 
-export default function CircularAxisLayer({ sequenceLength, radius = 2.55 }) {
+export default function CircularAxisLayer({
+  sequenceLength,
+  radius = 2.55,
+  majorStep,
+  minorStep,
+  range
+}) {
   const ticks = useMemo(
-    () => buildCircularAxisTicks({ sequenceLength }),
-    [sequenceLength]
+    () =>
+      buildCircularAxisTicks({ sequenceLength, majorStep, minorStep, range }),
+    [sequenceLength, majorStep, minorStep, range]
   );
 
   return (
@@ -29,7 +37,7 @@ export default function CircularAxisLayer({ sequenceLength, radius = 2.55 }) {
           radius={radius}
           length={0.08}
           width={0.012}
-          color="#69809d"
+          color={circularMapStyle.axisRing}
         />
       ))}
       {ticks.major.map(tick => (
@@ -39,7 +47,7 @@ export default function CircularAxisLayer({ sequenceLength, radius = 2.55 }) {
           radius={radius}
           length={0.16}
           width={0.018}
-          color="#dbeafe"
+          color={circularMapStyle.axisMajor}
         />
       ))}
     </group>

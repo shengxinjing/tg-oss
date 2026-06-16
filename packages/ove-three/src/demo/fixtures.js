@@ -28,7 +28,7 @@ export const smallCircular = {
       type: "promoter",
       start: 8,
       end: 31,
-      color: "#8b5cf6"
+      color: "#9d7cf2"
     },
     {
       id: "small-cds",
@@ -36,7 +36,7 @@ export const smallCircular = {
       type: "CDS",
       start: 46,
       end: 96,
-      color: "#45d34f"
+      color: "#35c995"
     }
   ],
   primers: [],
@@ -56,7 +56,7 @@ export const mediumCircular = {
       type: "promoter",
       start: 87,
       end: 509,
-      color: "#8b5cf6"
+      color: "#9d7cf2"
     },
     {
       id: "lac-operator",
@@ -64,7 +64,7 @@ export const mediumCircular = {
       type: "operator",
       start: 526,
       end: 548,
-      color: "#3b82f6"
+      color: "#5b8def"
     },
     {
       id: "mcs",
@@ -72,7 +72,7 @@ export const mediumCircular = {
       type: "misc_feature",
       start: 654,
       end: 761,
-      color: "#f97316"
+      color: "#ee7a5b"
     },
     {
       id: "gfp",
@@ -80,7 +80,7 @@ export const mediumCircular = {
       type: "CDS",
       start: 762,
       end: 1481,
-      color: "#45d34f"
+      color: "#35c995"
     },
     {
       id: "his6-tag",
@@ -88,7 +88,7 @@ export const mediumCircular = {
       type: "tag",
       start: 1482,
       end: 1500,
-      color: "#f5d13d"
+      color: "#e3a73f"
     },
     {
       id: "sv40",
@@ -96,7 +96,7 @@ export const mediumCircular = {
       type: "misc_signal",
       start: 1538,
       end: 1731,
-      color: "#e879f9"
+      color: "#df6cce"
     },
     {
       id: "ori",
@@ -104,7 +104,7 @@ export const mediumCircular = {
       type: "origin",
       start: 1811,
       end: 2450,
-      color: "#60a5fa"
+      color: "#44b8e8"
     },
     {
       id: "ampr",
@@ -112,7 +112,7 @@ export const mediumCircular = {
       type: "CDS",
       start: 2476,
       end: 2700,
-      color: "#84cc16"
+      color: "#7cc45a"
     }
   ],
   primers: [
@@ -122,7 +122,7 @@ export const mediumCircular = {
       type: "primer",
       start: 210,
       end: 238,
-      color: "#22d3ee",
+      color: "#25b5ad",
       forward: true
     },
     {
@@ -131,7 +131,7 @@ export const mediumCircular = {
       type: "primer",
       start: 1220,
       end: 1252,
-      color: "#67e8f9",
+      color: "#46c6d8",
       forward: false
     }
   ],
@@ -272,7 +272,7 @@ export const crossOriginCircular = {
       type: "CDS",
       start: 2600,
       end: 120,
-      color: "#ef4444"
+      color: "#e8615f"
     }
   ]
 };
@@ -303,7 +303,7 @@ export const proteinLike = {
       type: "domain",
       start: 30,
       end: 180,
-      color: "#3b82f6"
+      color: "#5b8def"
     },
     {
       id: "protein-domain-b",
@@ -311,7 +311,7 @@ export const proteinLike = {
       type: "domain",
       start: 310,
       end: 520,
-      color: "#8b5cf6"
+      color: "#9d7cf2"
     }
   ],
   primers: [],

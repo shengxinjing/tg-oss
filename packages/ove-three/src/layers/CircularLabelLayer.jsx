@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Billboard, Line, Text } from "@react-three/drei";
 import buildCircularLabels from "../labels/buildCircularLabels";
+import circularMapStyle from "../theme/circularMapStyle";
 
 function LabelBox({ label }) {
   const width = label.width / 120;
@@ -33,11 +34,15 @@ function CircularLabel({ label, showLabelBoxes, lineOpacity }) {
       {showLabelBoxes && <LabelBox label={label} />}
       <Billboard position={label.position}>
         <Text
-          color={label.selected || label.hovered ? "#ffffff" : label.color}
+          color={
+            label.selected || label.hovered
+              ? circularMapStyle.labelSelected
+              : label.color
+          }
           fontSize={label.fontSizeWorld || 0.115}
           anchorX="center"
           anchorY="middle"
-          outlineColor="#07111f"
+          outlineColor={circularMapStyle.textOutline}
           outlineWidth={0.012}
         >
           {label.text}

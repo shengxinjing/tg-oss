@@ -12,6 +12,7 @@ import CaretLayer from "../layers/CaretLayer";
 import RowAnnotationLayer from "../layers/RowAnnotationLayer";
 import RowAxisLayer from "../layers/RowAxisLayer";
 import RowCutsiteLayer from "../layers/RowCutsiteLayer";
+import RowEditLayer from "../layers/RowEditLayer";
 import RowSequenceLayer from "../layers/RowSequenceLayer";
 import RowTranslationLayer from "../layers/RowTranslationLayer";
 import SearchLayer from "../layers/SearchLayer";
@@ -22,6 +23,7 @@ import NativeContextMenuPicker from "../interaction/NativeContextMenuPicker";
 import isPrimaryPointerButton from "../interaction/isPrimaryPointerButton";
 import mapPointToVisibleRowPosition from "../interaction/mapPointToVisibleRowPosition";
 import buildRowSceneModel from "../model/buildRowSceneModel";
+import buildRowEditSegments from "../model/buildRowEditSegments";
 import getCanvasDpr from "./getCanvasDpr";
 import getRowCameraZoom, { getRowCameraTargetY } from "./getRowCameraZoom";
 import getNextVisibleStartRow from "./getNextVisibleStartRow";
@@ -194,6 +196,7 @@ function RowCameraFrame({ sceneModel, rowGroupX }) {
 
 function RowScene({
   sceneModel,
+  editModel,
   onSelectRange,
   onDoubleClickRange,
   onContextMenuRange,
@@ -279,6 +282,12 @@ function RowScene({
           onHoverRange={onHoverRange}
           onHoverEnd={onHoverEnd}
         />
+        <RowEditLayer
+          editModel={editModel}
+          sceneModel={sceneModel}
+          onSelectRange={onSelectRange}
+          onContextMenuRange={onContextMenuRange}
+        />
       </group>
       {showSceneStats && (
         <PerfOverlay
@@ -298,6 +307,7 @@ export default function ThreeRowCanvas({
   basesPerRow = 80,
   visibleRowCount = 10,
   mode = "dna",
+  edits = [],
   annotationVisibility,
   sequenceCase = "raw",
   reverseRowSequence = false,
@@ -367,6 +377,21 @@ export default function ThreeRowCanvas({
       sequenceData,
       visibleRowCount,
       visibleStartRow
+    ]
+  );
+  const editModel = useMemo(
+    () =>
+      buildRowEditSegments({
+        edits,
+        sequenceLength: sceneModel.sequenceLength,
+        basesPerRow: sceneModel.basesPerRow,
+        baseWidth: sceneModel.baseWidth
+      }),
+    [
+      edits,
+      sceneModel.baseWidth,
+      sceneModel.basesPerRow,
+      sceneModel.sequenceLength
     ]
   );
   const scrollToPosition = useCallback(
@@ -469,6 +494,7 @@ export default function ThreeRowCanvas({
           />
           <RowScene
             sceneModel={sceneModel}
+            editModel={editModel}
             onSelectRange={onSelectRange}
             onDoubleClickRange={onDoubleClickRange}
             onContextMenuRange={onContextMenuRange}

@@ -1,0 +1,1508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ove-three · modern style mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+   DESIGN TOKENS — "precision lab instrument"
+   Drop these into packages/ove-three/src/style.css :root
+   ============================================================ */
+      :root {
+        /* warm-graphite neutrals, tinted ~3% toward the lime accent (hue 145) */
+        --bg-0: oklch(0.165 0.012 150); /* deepest — canvas */
+        --bg-1: oklch(0.205 0.013 150); /* chrome bars */
+        --bg-2: oklch(0.235 0.013 150); /* panels */
+        --bg-3: oklch(0.285 0.015 150); /* raised controls */
+        --bg-hover: oklch(0.33 0.018 150);
+        --line: oklch(0.4 0.014 150 / 0.55);
+        --line-soft: oklch(0.4 0.014 150 / 0.28);
+
+        --text-1: oklch(0.965 0.01 150); /* primary */
+        --text-2: oklch(0.78 0.014 150); /* secondary */
+        --text-3: oklch(0.6 0.014 150); /* hint */
+
+        /* accent — lime / GFP green (NOT cyan). vivid but controlled */
+        --accent: oklch(0.84 0.18 138);
+        --accent-deep: oklch(0.52 0.13 140);
+        --accent-weak: oklch(0.84 0.18 138 / 0.14);
+        --accent-line: oklch(0.84 0.18 138 / 0.42);
+        --on-accent: oklch(0.21 0.05 145);
+
+        /* selection / caret — warm amber */
+        --select: oklch(0.83 0.15 78);
+        --select-weak: oklch(0.83 0.15 78 / 0.16);
+        --warn: oklch(0.82 0.14 75);
+        --danger: oklch(0.68 0.18 25);
+
+        /* radius scale */
+        --r1: 5px;
+        --r2: 7px;
+        --r3: 10px;
+        --r4: 14px;
+
+        /* tinted elevation — soft, not the generic black drop-shadow */
+        --sh-1: 0 1px 2px oklch(0.12 0.02 150 / 0.5);
+        --sh-2:
+          0 6px 20px oklch(0.1 0.02 150 / 0.45),
+          0 1px 0 oklch(0.9 0.05 150 / 0.04) inset;
+        --sh-pop: 0 14px 40px oklch(0.08 0.02 150 / 0.55);
+
+        /* motion */
+        --ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
+        --dur: 0.42s;
+
+        --font-ui:
+          "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            1200px 600px at 18% -10%,
+            oklch(0.24 0.02 150) 0%,
+            transparent 60%
+          ),
+          var(--bg-0);
+        color: var(--text-1);
+        font-family: var(--font-ui);
+        font-size: 13px;
+        -webkit-font-smoothing: antialiased;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 28px;
+      }
+      ::selection {
+        background: var(--accent-weak);
+      }
+
+      /* ============================================================
+   APP FRAME
+   ============================================================ */
+      .app {
+        width: min(1240px, 100%);
+        height: min(760px, calc(100vh - 56px));
+        display: grid;
+        grid-template-rows: 54px 46px 48px minmax(0, 1fr) 38px;
+        background: var(--bg-1);
+        border: 1px solid var(--line);
+        border-radius: var(--r4);
+        overflow: hidden;
+        box-shadow: var(--sh-pop);
+        opacity: 0;
+        transform: translateY(10px) scale(0.995);
+        animation: rise var(--dur) var(--ease) forwards;
+      }
+      @keyframes rise {
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* --- chrome bar --- */
+      .chrome {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 0 16px;
+        background: var(--bg-1);
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        flex: 0 0 auto;
+      }
+      .brand .mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(
+          150deg,
+          var(--accent) 0%,
+          var(--accent-deep) 130%
+        );
+        box-shadow:
+          0 0 0 1px var(--accent-line),
+          0 4px 12px oklch(0.84 0.18 138 / 0.25);
+      }
+      .brand .mark svg {
+        width: 17px;
+        height: 17px;
+      }
+      .brand .who {
+        display: grid;
+        line-height: 1.25;
+      }
+      .brand .who b {
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+      }
+      .brand .who span {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-3);
+        white-space: nowrap;
+      }
+      .brand .who span em {
+        color: var(--accent);
+        font-style: normal;
+      }
+
+      .menu {
+        display: flex;
+        gap: 2px;
+        flex: 1 1 auto;
+      }
+      .menu button {
+        font: inherit;
+        color: var(--text-2);
+        background: none;
+        border: 0;
+        padding: 7px 11px;
+        border-radius: var(--r2);
+        cursor: pointer;
+        transition:
+          background 0.16s,
+          color 0.16s;
+      }
+      .menu button:hover {
+        background: var(--bg-3);
+        color: var(--text-1);
+      }
+
+      .wintools {
+        display: flex;
+        gap: 6px;
+        flex: 0 0 auto;
+      }
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--r2);
+        background: var(--bg-2);
+        color: var(--text-2);
+        cursor: pointer;
+        transition:
+          background 0.16s,
+          color 0.16s,
+          border-color 0.16s,
+          transform 0.12s;
+      }
+      .icon-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-1);
+        border-color: var(--line);
+      }
+      .icon-btn:active {
+        transform: scale(0.94);
+      }
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* --- tab strip with sliding indicator --- */
+      .tabs {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        gap: 4px;
+        padding: 0 16px;
+        background: var(--bg-1);
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .tabs button {
+        position: relative;
+        z-index: 1;
+        font: inherit;
+        font-size: 13px;
+        color: var(--text-3);
+        background: none;
+        border: 0;
+        padding: 0 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        transition: color 0.2s;
+      }
+      .tabs button .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.5;
+      }
+      .tabs button[aria-selected="true"] {
+        color: var(--text-1);
+      }
+      .tabs button[aria-selected="true"] .dot {
+        background: var(--accent);
+        opacity: 1;
+      }
+      .tab-ink {
+        position: absolute;
+        bottom: -1px;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: var(--accent);
+        box-shadow: 0 0 14px var(--accent-line);
+        transition:
+          left var(--dur) var(--ease),
+          width var(--dur) var(--ease);
+      }
+
+      /* --- view-options bar --- */
+      .viewbar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 0 18px;
+        background: var(--bg-0);
+        border-bottom: 1px solid var(--line-soft);
+        overflow: hidden;
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--text-2);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .field > label {
+        color: var(--text-3);
+      }
+
+      /* custom range slider */
+      .rng {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 104px;
+        height: 18px;
+        background: transparent;
+        cursor: pointer;
+      }
+      .rng::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 99px;
+        background: var(--bg-3);
+      }
+      .rng::-moz-range-track {
+        height: 4px;
+        border-radius: 99px;
+        background: var(--bg-3);
+      }
+      .rng::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        margin-top: -5px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg-0);
+        box-shadow: 0 0 0 1px var(--accent-line);
+        transition: transform 0.12s;
+      }
+      .rng::-webkit-slider-thumb:hover {
+        transform: scale(1.18);
+      }
+      .rng::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg-0);
+      }
+      .val {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-1);
+        min-width: 30px;
+      }
+
+      /* toggle switch */
+      .sw {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+        color: var(--text-2);
+      }
+      .sw input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sw .track {
+        width: 30px;
+        height: 17px;
+        border-radius: 99px;
+        background: var(--bg-3);
+        border: 1px solid var(--line);
+        position: relative;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
+      }
+      .sw .track::after {
+        content: "";
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--text-2);
+        transition:
+          transform var(--dur) var(--ease),
+          background 0.2s;
+      }
+      .sw input:checked + .track {
+        background: var(--accent-weak);
+        border-color: var(--accent-line);
+      }
+      .sw input:checked + .track::after {
+        transform: translateX(13px);
+        background: var(--accent);
+      }
+      .sw input:focus-visible + .track {
+        box-shadow: 0 0 0 3px var(--accent-weak);
+      }
+
+      /* segmented control */
+      .seg {
+        display: inline-flex;
+        padding: 2px;
+        gap: 2px;
+        background: var(--bg-2);
+        border: 1px solid var(--line-soft);
+        border-radius: var(--r2);
+      }
+      .seg button {
+        font: inherit;
+        font-size: 11px;
+        color: var(--text-3);
+        background: none;
+        border: 0;
+        padding: 4px 9px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition:
+          background 0.16s,
+          color 0.16s;
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--bg-hover);
+        color: var(--text-1);
+        box-shadow: var(--sh-1);
+      }
+
+      /* --- body --- */
+      .body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 312px;
+        min-height: 0;
+      }
+
+      .stage {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+        background: radial-gradient(
+          900px 520px at 42% 30%,
+          oklch(0.215 0.016 150) 0%,
+          var(--bg-0) 70%
+        );
+        display: grid;
+        place-items: center;
+      }
+      .stage svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* floating scene-stats glass card */
+      .stats {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 178px;
+        padding: 11px 13px;
+        border-radius: var(--r3);
+        background: oklch(0.2 0.013 150 / 0.66);
+        border: 1px solid var(--line-soft);
+        backdrop-filter: blur(14px);
+        box-shadow: var(--sh-2);
+      }
+      .stats h4 {
+        margin: 0 0 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-1);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .stats h4 i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent);
+      }
+      .stats dl {
+        margin: 0;
+        display: grid;
+        gap: 5px;
+      }
+      .stats .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+      }
+      .stats dt {
+        color: var(--text-3);
+      }
+      .stats dd {
+        margin: 0;
+        font-family: var(--font-mono);
+        color: var(--text-1);
+      }
+
+      .legend {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        max-width: 60%;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-2);
+        padding: 4px 9px 4px 7px;
+        border-radius: 99px;
+        background: oklch(0.2 0.013 150 / 0.7);
+        border: 1px solid var(--line-soft);
+        backdrop-filter: blur(8px);
+      }
+      .chip i {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+      }
+
+      /* --- side panel --- */
+      .panel {
+        border-left: 1px solid var(--line-soft);
+        background: var(--bg-2);
+        padding: 16px 15px;
+        overflow: auto;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+      .panel::-webkit-scrollbar {
+        width: 8px;
+      }
+      .panel::-webkit-scrollbar-thumb {
+        background: var(--bg-3);
+        border-radius: 99px;
+      }
+
+      .search {
+        position: relative;
+      }
+      .search svg {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 14px;
+        color: var(--text-3);
+      }
+      .search input {
+        width: 100%;
+        font: inherit;
+        color: var(--text-1);
+        background: var(--bg-1);
+        border: 1px solid var(--line-soft);
+        border-radius: var(--r2);
+        padding: 9px 11px 9px 32px;
+        transition:
+          border-color 0.16s,
+          box-shadow 0.16s;
+      }
+      .search input::placeholder {
+        color: var(--text-3);
+      }
+      .search input:focus {
+        outline: 0;
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 3px var(--accent-weak);
+      }
+
+      .sec-h {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .sec-h h3 {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-3);
+      }
+      .sec-h .count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-3);
+      }
+
+      .flist {
+        display: grid;
+        gap: 1px;
+      }
+      .frow {
+        display: grid;
+        grid-template-columns: 10px 1fr auto;
+        align-items: center;
+        gap: 11px;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        color: var(--text-2);
+        background: none;
+        border: 0;
+        padding: 8px 9px;
+        border-radius: var(--r2);
+        cursor: pointer;
+        transition:
+          background 0.14s,
+          color 0.14s,
+          transform 0.12s;
+      }
+      .frow:hover {
+        background: var(--bg-3);
+        color: var(--text-1);
+        transform: translateX(2px);
+      }
+      .frow[aria-current="true"] {
+        background: var(--accent-weak);
+        color: var(--text-1);
+      }
+      .frow .swatch {
+        width: 10px;
+        height: 20px;
+        border-radius: 3px;
+      }
+      .frow .nm {
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .frow .rng-l {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--text-3);
+      }
+
+      /* selected card */
+      .card {
+        border: 1px solid var(--accent-line);
+        border-radius: var(--r3);
+        background:
+          linear-gradient(180deg, var(--accent-weak), transparent 60%),
+          var(--bg-1);
+        padding: 13px;
+        display: grid;
+        gap: 11px;
+      }
+      .card .top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .card .top .swatch {
+        width: 11px;
+        height: 22px;
+        border-radius: 3px;
+      }
+      .card .top b {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .card .top .tag {
+        margin-left: auto;
+        font-size: 10.5px;
+        color: var(--accent);
+        border: 1px solid var(--accent-line);
+        padding: 2px 7px;
+        border-radius: 99px;
+      }
+      .card dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 58px 1fr;
+        gap: 6px 10px;
+        font-size: 12px;
+      }
+      .card dt {
+        color: var(--text-3);
+      }
+      .card dd {
+        margin: 0;
+        font-family: var(--font-mono);
+        color: var(--text-1);
+      }
+      .card .acts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .card .acts button {
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 7px;
+        border-radius: var(--r2);
+        border: 1px solid var(--line);
+        background: var(--bg-3);
+        color: var(--text-1);
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      .card .acts button:hover {
+        background: var(--bg-hover);
+      }
+      .card .acts button.primary {
+        background: var(--accent);
+        color: var(--on-accent);
+        border-color: transparent;
+        font-weight: 600;
+      }
+      .card .acts button.primary:hover {
+        filter: brightness(1.06);
+      }
+
+      .layers {
+        display: grid;
+        gap: 3px;
+      }
+      .layers .sw {
+        padding: 6px 4px;
+        justify-content: space-between;
+        flex-direction: row-reverse;
+        font-size: 13px;
+      }
+      .layers .sw .lbl {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--text-2);
+      }
+      .layers .sw .lbl i {
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+      }
+
+      /* --- status bar --- */
+      .status {
+        display: flex;
+        align-items: stretch;
+        background: var(--bg-1);
+        border-top: 1px solid var(--line-soft);
+        font-size: 11.5px;
+        color: var(--text-2);
+      }
+      .status .cell {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 14px;
+        border-right: 1px solid var(--line-soft);
+        white-space: nowrap;
+      }
+      .status .cell b {
+        font-family: var(--font-mono);
+        font-weight: 500;
+        color: var(--text-1);
+      }
+      .status .cell.accent b {
+        color: var(--accent);
+      }
+      .status .spacer {
+        flex: 1;
+        border-right: 0;
+      }
+      .status .cell svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-3);
+      }
+
+      /* staggered reveal of interior */
+      .reveal {
+        opacity: 0;
+        animation: fade 0.5s var(--ease) forwards;
+      }
+      @keyframes fade {
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app,
+        .reveal {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .tab-ink {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="app"
+      role="application"
+      aria-label="ove-three gene editor — modern style mockup"
+    >
+      <!-- CHROME -->
+      <header class="chrome">
+        <div class="brand">
+          <span class="mark" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--on-accent)"
+              stroke-width="2.1"
+              stroke-linecap="round"
+            >
+              <path d="M7 3c0 4 10 6 10 9s-10 5-10 9" />
+              <path d="M17 3c0 4-10 6-10 9s10 5 10 9" />
+              <path
+                d="M8.5 6h7M8.5 18h7M7.7 9h8.6M7.7 15h8.6"
+                stroke-width="1.4"
+              />
+            </svg>
+          </span>
+          <span class="who">
+            <b>ove-three</b>
+            <span>pUC57_modified · 2,710 bp · <em>circular</em></span>
+          </span>
+        </div>
+        <nav class="menu" aria-label="Main menu">
+          <button>File</button><button>Edit</button><button>View</button
+          ><button>Tools</button><button>Help</button>
+        </nav>
+        <div class="wintools">
+          <button class="icon-btn" aria-label="Export PNG">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              <path d="M12 4v11M8 11l4 4 4-4" />
+            </svg>
+          </button>
+          <button class="icon-btn" aria-label="Fullscreen">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            </svg>
+          </button>
+          <button class="icon-btn" aria-label="Collapse panel">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M15 4v16M4 4h16v16H4z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- TABS -->
+      <nav class="tabs" role="tablist" aria-label="View">
+        <button role="tab" aria-selected="true">
+          <span class="dot"></span>Circular Map
+        </button>
+        <button role="tab" aria-selected="false">
+          <span class="dot"></span>Linear Map
+        </button>
+        <button role="tab" aria-selected="false">
+          <span class="dot"></span>Sequence Map
+        </button>
+        <button role="tab" aria-selected="false">
+          <span class="dot"></span>Properties
+        </button>
+        <span class="tab-ink" aria-hidden="true"></span>
+      </nav>
+
+      <!-- VIEW OPTIONS -->
+      <div class="viewbar reveal" style="animation-delay: 0.16s">
+        <div class="field">
+          <label>Zoom</label
+          ><input
+            class="rng"
+            type="range"
+            min="100"
+            max="400"
+            value="160"
+            step="1"
+          /><span class="val" data-suffix="%">160%</span>
+        </div>
+        <div class="field">
+          <label>Rotate</label
+          ><input
+            class="rng"
+            type="range"
+            min="0"
+            max="360"
+            value="28"
+            step="1"
+          /><span class="val" data-suffix="°">28°</span>
+        </div>
+        <label class="sw"
+          ><input type="checkbox" checked /><span class="track"></span
+          >Axis</label
+        >
+        <label class="sw"
+          ><input type="checkbox" checked /><span class="track"></span
+          >Labels</label
+        >
+        <div class="field">
+          <label>Mode</label>
+          <div class="seg" role="group" aria-label="Sequence mode">
+            <button aria-pressed="true">DNA</button
+            ><button aria-pressed="false">Protein</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div class="body">
+        <section
+          class="stage reveal"
+          style="animation-delay: 0.24s"
+          aria-label="Circular plasmid map"
+        >
+          <svg
+            id="map"
+            viewBox="0 0 720 600"
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label="Circular map of pUC57_modified, 2710 base pairs, GFP feature selected"
+          ></svg>
+
+          <aside class="stats" aria-label="Scene statistics">
+            <h4><i></i>Render</h4>
+            <dl>
+              <div class="row">
+                <dt>FPS</dt>
+                <dd>60</dd>
+              </div>
+              <div class="row">
+                <dt>Draw calls</dt>
+                <dd>34</dd>
+              </div>
+              <div class="row">
+                <dt>Objects</dt>
+                <dd>212</dd>
+              </div>
+              <div class="row">
+                <dt>Triangles</dt>
+                <dd>18.4k</dd>
+              </div>
+            </dl>
+          </aside>
+
+          <div class="legend" aria-hidden="true">
+            <span class="chip"
+              ><i style="background: var(--c-feat)"></i>Feature</span
+            >
+            <span class="chip"
+              ><i style="background: var(--c-primer)"></i>Primer</span
+            >
+            <span class="chip"
+              ><i style="background: var(--c-ori)"></i>Origin</span
+            >
+            <span class="chip"
+              ><i style="background: var(--c-cut)"></i>Cut site</span
+            >
+          </div>
+        </section>
+
+        <!-- SIDE PANEL -->
+        <aside
+          class="panel reveal"
+          style="animation-delay: 0.32s"
+          aria-label="Annotations"
+        >
+          <div class="search">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search annotations…"
+              aria-label="Search annotations"
+            />
+          </div>
+
+          <div>
+            <div class="sec-h">
+              <h3>Features</h3>
+              <span class="count">6</span>
+            </div>
+            <div class="flist" id="flist"></div>
+          </div>
+
+          <div class="card" aria-label="Selected feature">
+            <div class="top">
+              <span class="swatch" style="background: var(--c-feat)"></span
+              ><b>GFP</b><span class="tag">CDS</span>
+            </div>
+            <dl>
+              <dt>Range</dt>
+              <dd>1,041 – 1,757</dd>
+              <dt>Length</dt>
+              <dd>717 bp</dd>
+              <dt>Strand</dt>
+              <dd>+ (forward)</dd>
+              <dt>Frame</dt>
+              <dd>+1</dd>
+            </dl>
+            <div class="acts">
+              <button class="primary">Edit feature</button>
+              <button>Go to bp</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="sec-h">
+              <h3>Layers</h3>
+              <button
+                class="icon-btn"
+                style="width: 24px; height: 24px"
+                aria-label="Show all"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                </svg>
+              </button>
+            </div>
+            <div class="layers" id="layers"></div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- STATUS BAR -->
+      <footer class="status reveal" style="animation-delay: 0.4s">
+        <span class="cell"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" /></svg
+          >circular DNA</span
+        >
+        <span class="cell">Length <b>2,710</b></span>
+        <span class="cell accent">Selection <b>1,041–1,757</b></span>
+        <span class="cell">Caret <b>1,041</b></span>
+        <span class="spacer cell"></span>
+        <span class="cell">DNA · 1 of 6</span>
+        <span class="cell accent"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <circle cx="12" cy="12" r="9" /></svg
+          >60 FPS</span
+        >
+      </footer>
+    </main>
+
+    <script>
+      /* feature data — categorical colors live as CSS vars so they theme cleanly */
+      const C = {
+        feat: "#7bd88f" /* GFP / CDS — leans toward the lime accent family */,
+        primer: "#e6b450" /* primers — amber */,
+        ori: "#79b8ff" /* origin / rep — blue */,
+        cut: "#ff8f8f" /* cut sites — coral */,
+        part: "#c792ea" /* parts — violet */,
+        promo: "#5ccfe6" /* promoter — teal (used sparingly) */
+      };
+      const root = document.documentElement.style;
+      root.setProperty("--c-feat", C.feat);
+      root.setProperty("--c-primer", C.primer);
+      root.setProperty("--c-ori", C.ori);
+      root.setProperty("--c-cut", C.cut);
+
+      const TOTAL = 2710;
+      /* start/end in bp, lane radius offset, color, label */
+      const FEATURES = [
+        {
+          name: "GFP",
+          s: 1041,
+          e: 1757,
+          lane: 0,
+          c: C.feat,
+          dir: 1,
+          sel: true,
+          type: "CDS"
+        },
+        {
+          name: "AmpR",
+          s: 2100,
+          e: 2680,
+          lane: 0,
+          c: C.feat,
+          dir: -1,
+          type: "CDS"
+        },
+        {
+          name: "lac promoter",
+          s: 60,
+          e: 280,
+          lane: 1,
+          c: C.promo,
+          dir: 1,
+          type: "promoter"
+        },
+        {
+          name: "ori",
+          s: 400,
+          e: 760,
+          lane: 0,
+          c: C.ori,
+          dir: 1,
+          type: "rep_origin"
+        },
+        {
+          name: "M13 fwd",
+          s: 300,
+          e: 340,
+          lane: 2,
+          c: C.primer,
+          dir: 1,
+          type: "primer"
+        },
+        {
+          name: "MCS",
+          s: 820,
+          e: 960,
+          lane: 1,
+          c: C.part,
+          dir: 1,
+          type: "misc"
+        }
+      ];
+      const CUTS = [
+        { bp: 812, name: "EcoRI" },
+        { bp: 965, name: "HindIII" },
+        { bp: 1790, name: "BamHI" }
+      ];
+
+      const cx = 360,
+        cy = 300,
+        R = 188;
+      const bpToAngle = bp =>
+        (bp / TOTAL) * 360 - 90; /* 0 bp at top, clockwise */
+      const pt = (r, aDeg) => {
+        const a = (aDeg * Math.PI) / 180;
+        return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+      };
+      function arcPath(r, a0, a1) {
+        const [x0, y0] = pt(r, a0),
+          [x1, y1] = pt(r, a1);
+        const large = (a1 - a0) % 360 > 180 ? 1 : 0;
+        return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+      }
+      const NS = "http://www.w3.org/2000/svg";
+      const el = (n, attrs = {}) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      };
+
+      const svg = document.getElementById("map");
+
+      /* backbone */
+      svg.appendChild(
+        el("circle", {
+          cx,
+          cy,
+          r: R,
+          fill: "none",
+          stroke: "var(--line)",
+          "stroke-width": 1.5
+        })
+      );
+      svg.appendChild(
+        el("circle", {
+          cx,
+          cy,
+          r: R - 1,
+          fill: "none",
+          stroke: "var(--accent)",
+          "stroke-width": 1,
+          "stroke-opacity": 0.1
+        })
+      );
+
+      /* ticks */
+      for (let bp = 0; bp < TOTAL; bp += 100) {
+        const major = bp % 500 === 0;
+        const a = bpToAngle(bp);
+        const [xi, yi] = pt(R - (major ? 13 : 7), a),
+          [xo, yo] = pt(R, a);
+        svg.appendChild(
+          el("line", {
+            x1: xi,
+            y1: yi,
+            x2: xo,
+            y2: yo,
+            stroke: "var(--line)",
+            "stroke-width": major ? 1.4 : 0.8,
+            "stroke-opacity": major ? 0.9 : 0.5
+          })
+        );
+        if (major) {
+          const [tx, ty] = pt(R - 26, a);
+          const t = el("text", {
+            x: tx,
+            y: ty,
+            fill: "var(--text-3)",
+            "font-size": 10,
+            "font-family": "var(--font-mono)",
+            "text-anchor": "middle",
+            "dominant-baseline": "middle"
+          });
+          t.textContent = bp === 0 ? "1" : bp.toLocaleString();
+          svg.appendChild(t);
+        }
+      }
+
+      /* feature arcs (animated draw-in) with directional arrowhead */
+      const laneR = lane => R - 22 - lane * 15;
+      FEATURES.forEach((f, i) => {
+        const r = laneR(f.lane);
+        let a0 = bpToAngle(f.s),
+          a1 = bpToAngle(f.e);
+        if (a1 < a0) a1 += 360;
+        const headDeg = 7;
+        const bodyEnd = f.dir === 1 ? a1 - headDeg : a0 + headDeg;
+        const bodyStart = f.dir === 1 ? a0 : a1;
+        const p = el("path", {
+          d: arcPath(
+            r,
+            Math.min(bodyStart, bodyEnd),
+            Math.max(bodyStart, bodyEnd)
+          ),
+          fill: "none",
+          stroke: f.c,
+          "stroke-width": f.lane === 2 ? 5 : 9,
+          "stroke-linecap": "butt",
+          opacity: f.sel ? 1 : 0.92
+        });
+        const len = ((Math.abs(a1 - a0) * Math.PI) / 180) * r;
+        p.style.strokeDasharray = len;
+        p.style.strokeDashoffset = len;
+        p.style.transition = `stroke-dashoffset .9s var(--ease) ${0.3 + i * 0.08}s`;
+        svg.appendChild(p);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            p.style.strokeDashoffset = 0;
+          })
+        );
+
+        /* arrowhead */
+        const tipDeg = f.dir === 1 ? a1 : a0;
+        const baseDeg = f.dir === 1 ? a1 - headDeg : a0 + headDeg;
+        const w = (f.lane === 2 ? 5 : 9) / 2 + 2;
+        const [tx, ty] = pt(r, tipDeg);
+        const [b1x, b1y] = pt(r + w, baseDeg),
+          [b2x, b2y] = pt(r - w, baseDeg);
+        const head = el("path", {
+          d: `M ${b1x} ${b1y} L ${tx} ${ty} L ${b2x} ${b2y} Z`,
+          fill: f.c,
+          opacity: 0
+        });
+        head.style.transition = `opacity .3s ease ${0.3 + i * 0.08 + 0.7}s`;
+        svg.appendChild(head);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            head.style.opacity = f.sel ? 1 : 0.92;
+          })
+        );
+
+        /* selection glow ring on GFP */
+        if (f.sel) {
+          const glow = el("path", {
+            d: arcPath(r, a0, a1),
+            fill: "none",
+            stroke: f.c,
+            "stroke-width": 16,
+            opacity: 0.18,
+            "stroke-linecap": "round"
+          });
+          svg.insertBefore(glow, svg.firstChild.nextSibling);
+        }
+
+        /* leader label for the larger features */
+        if (["GFP", "AmpR", "ori", "lac promoter"].includes(f.name)) {
+          const midDeg = (a0 + a1) / 2;
+          const [lx, ly] = pt(r, midDeg);
+          const [ox, oy] = pt(R + 18, midDeg);
+          const right = Math.cos((midDeg * Math.PI) / 180) >= 0;
+          const [ex, ey] = [ox + (right ? 34 : -34), oy];
+          svg.appendChild(
+            el("path", {
+              d: `M ${lx} ${ly} L ${ox} ${oy} L ${ex} ${ey}`,
+              fill: "none",
+              stroke: "var(--line)",
+              "stroke-width": 0.8
+            })
+          );
+          const t = el("text", {
+            x: ex + (right ? 6 : -6),
+            y: ey,
+            fill: "var(--text-1)",
+            "font-size": 12,
+            "font-weight": 500,
+            "text-anchor": right ? "start" : "end",
+            "dominant-baseline": "middle",
+            "font-family": "var(--font-ui)"
+          });
+          t.textContent = f.name;
+          svg.appendChild(t);
+          const t2 = el("text", {
+            x: ex + (right ? 6 : -6),
+            y: ey + 13,
+            fill: "var(--text-3)",
+            "font-size": 9.5,
+            "text-anchor": right ? "start" : "end",
+            "dominant-baseline": "middle",
+            "font-family": "var(--font-mono)"
+          });
+          t2.textContent = `${f.s.toLocaleString()}–${f.e.toLocaleString()}`;
+          svg.appendChild(t2);
+        }
+      });
+
+      /* cut sites — thin radial marks outside backbone with italic labels */
+      CUTS.forEach(c => {
+        const a = bpToAngle(c.bp);
+        const [xi, yi] = pt(R + 2, a),
+          [xo, yo] = pt(R + 12, a);
+        svg.appendChild(
+          el("line", {
+            x1: xi,
+            y1: yi,
+            x2: xo,
+            y2: yo,
+            stroke: C.cut,
+            "stroke-width": 1.6
+          })
+        );
+        const [tx, ty] = pt(R + 30, a);
+        const t = el("text", {
+          x: tx,
+          y: ty,
+          fill: C.cut,
+          "font-size": 10,
+          "font-style": "italic",
+          "text-anchor": "middle",
+          "dominant-baseline": "middle",
+          "font-family": "var(--font-ui)",
+          opacity: 0.92
+        });
+        t.textContent = c.name;
+        svg.appendChild(t);
+      });
+
+      /* center label */
+      const ct = el("text", {
+        x: cx,
+        y: cy - 8,
+        fill: "var(--text-1)",
+        "font-size": 17,
+        "font-weight": 600,
+        "text-anchor": "middle",
+        "font-family": "var(--font-ui)"
+      });
+      ct.textContent = "pUC57_modified";
+      svg.appendChild(ct);
+      const cb = el("text", {
+        x: cx,
+        y: cy + 13,
+        fill: "var(--accent)",
+        "font-size": 12,
+        "text-anchor": "middle",
+        "font-family": "var(--font-mono)"
+      });
+      cb.textContent = "2,710 bp";
+      svg.appendChild(cb);
+      const cc = el("text", {
+        x: cx,
+        y: cy + 30,
+        fill: "var(--text-3)",
+        "font-size": 10,
+        "text-anchor": "middle",
+        "letter-spacing": "0.14em",
+        "font-family": "var(--font-ui)"
+      });
+      cc.textContent = "CIRCULAR";
+      svg.appendChild(cc);
+
+      /* side-panel feature list */
+      const flist = document.getElementById("flist");
+      FEATURES.forEach(f => {
+        const b = document.createElement("button");
+        b.className = "frow";
+        if (f.sel) b.setAttribute("aria-current", "true");
+        b.innerHTML = `<span class="swatch" style="background:${f.c}"></span>
+    <span class="nm">${f.name}</span>
+    <span class="rng-l">${f.s.toLocaleString()}–${f.e.toLocaleString()}</span>`;
+        flist.appendChild(b);
+      });
+
+      /* layer toggles */
+      const LAYERS = [
+        ["Features", C.feat, true],
+        ["Primers", C.primer, true],
+        ["Cut sites", C.cut, true],
+        ["ORFs", C.ori, false],
+        ["Translations", C.part, false]
+      ];
+      const layers = document.getElementById("layers");
+      LAYERS.forEach(([nm, col, on]) => {
+        const l = document.createElement("label");
+        l.className = "sw";
+        l.innerHTML = `<input type="checkbox" ${on ? "checked" : ""}/><span class="track"></span>
+    <span class="lbl"><i style="background:${col}"></i>${nm}</span>`;
+        layers.appendChild(l);
+      });
+
+      /* tab sliding indicator */
+      const tablist = document.querySelector(".tabs");
+      const ink = document.querySelector(".tab-ink");
+      const tabBtns = [...tablist.querySelectorAll("button")];
+      function moveInk(btn) {
+        ink.style.left = btn.offsetLeft + "px";
+        ink.style.width = btn.offsetWidth + "px";
+      }
+      tabBtns.forEach(btn =>
+        btn.addEventListener("click", () => {
+          tabBtns.forEach(b =>
+            b.setAttribute("aria-selected", b === btn ? "true" : "false")
+          );
+          moveInk(btn);
+        })
+      );
+      requestAnimationFrame(() => moveInk(tabBtns[0]));
+
+      /* slider readouts */
+      document.querySelectorAll(".field").forEach(f => {
+        const r = f.querySelector(".rng"),
+          v = f.querySelector(".val");
+        if (r && v)
+          r.addEventListener(
+            "input",
+            () =>
+              (v.textContent = Math.round(r.value) + (v.dataset.suffix || ""))
+          );
+      });
+
+      /* segmented control */
+      document.querySelectorAll(".seg").forEach(seg => {
+        const bs = [...seg.querySelectorAll("button")];
+        bs.forEach(b =>
+          b.addEventListener("click", () =>
+            bs.forEach(x =>
+              x.setAttribute("aria-pressed", x === b ? "true" : "false")
+            )
+          )
+        );
+      });
+    </script>
+  </body>
+</html>
